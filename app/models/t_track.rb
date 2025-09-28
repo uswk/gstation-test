@@ -1,0 +1,3 @@
+class TTrack < ActiveRecord::Base
+  #attr_accessible :out_timing, :deviceid, :car_code, :route_code, :time, :latitude, :longitude, :accuracy, :gps_count, :net_status, :failure_flg, :speed
+end

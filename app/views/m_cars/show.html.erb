@@ -1,0 +1,35 @@
+<h1>車両詳細画面</h1>
+
+<table>
+  <thead>
+    <tr>
+      <th width=30%>車両コード</th>
+      <td width=70%><%= @m_car.car_code %></td>
+    </tr>
+    <tr>
+      <th>陸運局登録番号</th>
+      <td><%= @m_car.car_reg_code %></td>
+    </tr>
+    <tr>
+      <th>部署</th>
+      <td><%= @m_car.section_name %></td>
+    </tr>
+    <tr>
+      <th>車両メーカー名</th>
+      <td><%= @m_car.car_maker %></td>
+    </tr>
+    <tr>
+      <th>車種</th>
+      <td><%= @m_car.type_name %></td>
+    </tr>
+    <tr>
+      <th>委託会社</th>
+      <td><%= @m_car.cust_name %></td>
+    </tr>
+  </thead>
+</table>
+<br>
+<% if current_user.authority!=9 %>
+  <%= link_to '編集', edit_m_car_path(@m_car), :class => 'btn btn-light', :style=>'text-decoration:none;' %>&nbsp;&nbsp;
+<% end %>
+<%= link_to '戻る', m_cars_path, :class => 'btn btn-light', :style=>'text-decoration:none;' %>

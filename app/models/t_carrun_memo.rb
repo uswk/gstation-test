@@ -1,0 +1,11 @@
+class TCarrunMemo < ActiveRecord::Base
+
+  #attr_accessible :carrun_id, :cust_kbn, :cust_code, :finish_timing, :memo
+
+  has_attached_file :memo, styles: { :medium => "320x240", thumb: "48x48>" },
+    storage: :s3,
+    s3_permissions: :public_read_write,
+    s3_credentials: "#{Rails.root}/config/s3.yml"
+
+  validates_attachment_content_type :memo, :content_type => ["image/jpg", "image/jpeg", "image/png"]
+end

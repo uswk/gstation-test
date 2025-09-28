@@ -1,0 +1,127 @@
+<%= form_for(@m_custom,:url => {:controller=>'unloads', :action => 'update'}, :html => {:class => "edit_unload", :name => "edit_unload", :id => "edit_unload"}) do |f| %>
+  <% if @m_custom.errors.any? %>
+    <div id="error_explanation">
+      <h2><%= pluralize(@m_custom.errors.count, "error") %> prohibited this m_custom from being saved:</h2>
+
+      <ul>
+      <% @m_custom.errors.full_messages.each do |msg| %>
+        <li><%= msg %></li>
+      <% end %>
+      </ul>
+    </div>
+  <% end %>
+  <%= f.hidden_field :cust_kbn %>
+  <%= f.hidden_field :cust_code %>
+  <% if params[:lat_del] %>
+    <input type=hidden id=lat_del name=lat_del value="<%= params[:lat_del] %>">
+    <input type=hidden id=lng_del name=lng_del value="<%= params[:lng_del] %>">
+    <input type=hidden id=zoom_del name=zoom_del value="<%= params[:zoom_del] %>">
+  <% end %>
+  <input type=hidden id=header_no_dsp name=header_no_dsp value="<%= params[:header_no_dsp] %>">
+  <table>
+    <thead>
+      <tr>
+        <th colspan=2>荷下先コード</th>
+        <td><%= @m_custom.cust_code %></td>
+        <% if not @map_zenrin_cid.blank? %>
+          <input type=button value="ゼンリン住宅地図" class='btn' style="position:relative; top:-5px; left:-10px; float: right;" onclick=fzenrin_common_map_display("<%= root_url(only_path: false) %>");>
+        <% end %>
+        <td width=40% rowspan=8 valign="top">
+          <div class="map_container" style="width:96%;">
+            <div id="map_canvas" style="width:100%; height:500px"></div>
+          </div>
+          <span style="font-size:10px;">※マーカーをドラッグした状態でマウスを動かすと位置を移動することができます。</span>
+        </td>
+      </tr>
+      <tr>
+        <th colspan=2>荷下先名</th>
+        <td><%= f.text_field :cust_name, :size=>30, :maxlength=>50 %></td>
+      </tr>
+      <tr>
+        <th colspan=2>住所</th>
+        <td>
+          <%= f.text_field :addr_1, :size=>40, :maxlength=>100 %>
+          <input type=button value="緯度経度取得" onClick="JlatlngChange()"; class='btn btn-mini'>
+        </td>
+      </tr>
+      <tr>
+        <th colspan=2>ｱﾊﾟｰﾄ・ﾏﾝｼｮﾝ・ﾋﾞﾙ名</th>
+        <td><%= f.text_field :addr_2, :size=>40, :maxlength=>100 %></td>
+      </tr>
+      <tr>
+        <th colspan=2>備考</th>
+        <td><%= f.text_area :memo, :rows=>2, :maxlength=>100 %></td>
+      </tr>
+      <tr>
+        <th colspan=2>緯度</th>
+        <td><%= f.text_field :latitude, :readonly=>true %></td>
+      </tr>
+      <tr>
+        <th colspan=2>経度</th>
+        <td><%= f.text_field :longitude, :readonly=>true %></td>
+      </tr>
+      <tr>
+        <td colspan=3>
+          <table>
+            <thead>
+              <tr>
+                <th width=60%>廃棄物</th>
+                <th width=20%>単位</th>
+                <th width=20%></th>
+              </tr>
+            </thead>
+          </table>
+          <div id="sortable-div">
+            <% @cnt_no = 0 %>
+            <% @m_collect_industs.each do |m_collect_indust| %>
+              <% @cnt_no = @cnt_no + 1 %>
+              <div id=tree_no_<%= @cnt_no %>>
+                <table>
+                  <tr>
+                    <td width=60%><%= select 'indust_kbn', '', @indust_kbns, {:selected => m_collect_indust.indust_kbn} %></td>
+                    <td width=20%><%= select 'unit_kbn', '', @unit_kbns, {:selected => m_collect_indust.unit_kbn, :include_blank => true} %></td>
+                    <td width=20% align=center><input type=button value="削除" onClick="fcustom_route_dlt(<%= @cnt_no %>)"; class='btn btn-mini btn-danger'></td>
+                  </tr>
+                </table>
+              </div>
+            <% end %>
+            <span id=indust_tag_sub></span>
+            <input type=hidden id=indust_cnt_no name=cnt_no value="<%= @cnt_no %>">
+          </div>
+          <br>
+          新規レコード
+          <div id=tree_no_add>
+            <table>
+              <tr>
+                <td width=60%><%= select 'indust_kbn_new', '', @indust_kbns, { :include_blank => true} %></td>
+                <td width=20%><%= select 'unit_kbn_new', '', @unit_kbns, { :include_blank => true} %></td>
+                <td width=20% align=center><input type=button value="行追加" onclick=funload_indust_add("<%= ERB::Util.url_encode(@indust_kbns) %>","<%= ERB::Util.url_encode(@unit_kbns) %>"); class='btn btn-mini'></td>
+              </tr>
+            </table>
+          </div>
+        </td>
+      </tr>
+    </thead>
+  </table>
+  <br>
+  <%= hidden_field :m_custom, :delete_flg, :value => @m_custom.delete_flg.nil? ? 0 : @m_custom.delete_flg %>
+  <%= hidden_field_tag :hold_params, 1 %>
+  <%= hidden_field_tag :search_page, params[:search_page].to_s %>
+  <%= hidden_field_tag :search_custcode, params[:search_custcode].to_s %>
+  <%= hidden_field_tag :search_custname, params[:search_custname].to_s %>
+  <%= hidden_field_tag :search_custaddr, params[:search_custaddr].to_s %>
+  <%= hidden_field_tag :search_custpage, params[:search_custpage].to_s %>
+  <%= hidden_field_tag :search_delete, params[:search_delete].to_s %>
+
+<br>
+<div class="actions">
+  <% if current_user.authority!=9 %>
+    <%= f.submit :"更新", :onclick => ('return funloads_submit();'), :class => 'btn btn-primary' %>&nbsp;&nbsp;
+  <% end %>
+  <% if params[:header_no_dsp].to_s!="1" %>
+    <%= link_to '戻る', unloads_path(:hold_params=>1,:page=>params[:search_page].to_s,:search_custcode=>params[:search_custcode].to_s,:search_custname=>params[:search_custname].to_s,:search_custaddr=>params[:search_custaddr].to_s,:search_custpage=>params[:search_custpage].to_s,:search_delete=>params[:search_delete].to_s), :class => 'btn', :style=>'text-decoration:none;' %>
+  <% else %>
+    <input type="button" id="modalClose" value="閉じる" onclick="modal_close()" class='btn'>
+  <% end %>
+</div>
+<% end %>

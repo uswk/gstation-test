@@ -1,0 +1,37 @@
+<h1>ステーション情報Excel出力画面</h1>
+<div id="cover">
+  <%= form_with(url: m_custom_excel001_path, local: true, method: "post", id: "inputform", html: {name: "inputform"}, data: {turbo: false}) do %>
+    <table>
+      <thead>
+        <tr><th colspan=4>Excelダウンロード</th></tr>
+        <tr>
+          <th>ステーション名</th>
+          <td><%= text_field 'search_name', 'query', :size => 50, :value => params[:search_name].nil? ? "" : params[:search_name][:query] %></td>
+          <th>ｽﾃｰｼｮﾝｺｰﾄﾞ</th>
+          <td><%= text_field 'search', 'query', :size => 20, :value => params[:search].nil? ? "" : params[:search][:query]  %></td>
+        </tr>
+        <tr>
+          <th>住所</th>
+          <td><%= text_field 'search_addr', 'query', :size => 50, :value => params[:search_addr].nil? ? "" : params[:search_addr][:query] %></td>
+          <th>管理者名</th>
+          <td><%= text_field 'search_tel', 'query', :size => 30, :value => params[:search_admin].nil? ? "" : params[:search_admin][:query] %></td>
+        </tr>
+        <tr>
+          <td colspan=4 align=center><%= submit_tag "Excelデータ出力" , :onclick => "return fexcel_send()", :class => 'btn btn-primary' %></td>
+          <%= hidden_field_tag :excel_flg, 1 %>
+        </tr>
+      </thead>
+    </table>
+  <% end %>
+</div>
+<%= content_for :scripts do %>
+  <script type="text/javascript" charset="utf-8">
+    function fexcel_send(){
+      if(window.confirm("Excel出力しますが、よろしいですか？")){
+        return true;
+      }else{
+        return false;
+      }
+    }
+  </script>
+<% end %>

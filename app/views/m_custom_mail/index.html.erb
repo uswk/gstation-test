@@ -1,0 +1,168 @@
+<h1>メール送信一覧画面</h1>
+
+<div id="cover">
+<%= form_tag("m_custom_mail", method: "get") do %>
+  <table>
+    <thead>
+      <tr>
+        <th>管理者名</th>
+        <td><%= text_field 'search_name', 'query', :size => 50, :value => params[:search_name].nil? ? "" : params[:search_name][:query] %></td>
+        <th>管理者ｺｰﾄﾞ</th>
+        <td><%= text_field 'search', 'query', :size => 20, :value => params[:search].nil? ? "" : params[:search][:query]  %></td>
+      </tr>
+      <tr>
+        <th>住所</th>
+        <td><%= text_field 'search_addr', 'query', :size => 50, :value => params[:search_addr].nil? ? "" : params[:search_addr][:query] %></td>
+        <th>管理者区分</th>
+        <td><%= select 'search_type', 'query', @admin_types, {:selected => params[:search_type].nil? ? "" : params[:search_type][:query], :include_blank => true} %></td>
+      </tr>
+      <tr>
+        <th>Ｅメール</th>
+        <td><%= text_field 'search_email', 'query', :size => 50, :value => params[:search_email].nil? ? "" : params[:search_email][:query] %></td>
+        <th>全画面表示</th>
+        <td><%= check_box 'search_all', 'query', {:checked => @bln_all} %></td>
+      <tr>
+      <tr>
+        <td colspan=4 align=center><%= submit_tag "検索", :class => 'btn btn-light' %></td>
+      </tr>
+    </thead>
+  </table>
+<% end %>
+
+<%= form_tag("m_custom_mail", method: "post", id: "inputform", name: "inputform", :multipart =>true ) do %>
+  <br>
+  <input type=button value="確認画面へ進む" onClick="fmail_next_dsp();" class='btn btn-light'>
+  <br><br>
+  <table cellpadding=2 cellspacing=0 width=98% bordercolorlight="#999999" bordercolordark="#ffffff" border=1>
+    <thead>
+      <tr><th colspan=2>送信内容</th></tr>
+    </thead>
+    <tr>
+      <td align=center>件名</td>
+      <td>
+        <input type="text" name="subject_txt" id="subject_txt" size=90 maxlength=100 onKeyPress="return submitStop(event);">
+        <font size=-3>(最大100文字)</font>
+      </td>
+    </tr>
+    <tr>
+      <td align=center>添付 <input type="image" id="c" src="images/icon_clip1.png" alt="添付ファイル" align="top"></td>
+      <td>
+        <input type="file" id="send_file_all" name="send_file_all" />
+        <input type="text" name="send_file" id="send_file" disabled readonly style="width:600px;" />
+        <img src="images/icon_batu1.png" onclick="fmail_file_delete()">
+      </td>
+    </tr>
+    <tr>
+      <td class="pntTd03" align=center>本文</td>
+      <td class="pntTd00">
+        <textarea name="message_txt" id="message_txt" maxlength=2500 cols="80" rows="10"></textarea>
+        <br><font size=-3>(最大2500文字)　　※管理者名を入れたい場合は{@管理者名}と入力してください。</font>
+      </td>
+    </tr>
+  </table>
+  <br>
+  <% if @bln_all==false %>
+    <%= paginate(@m_custom_mails) %>
+  <% end %>
+  <table>
+    <thead>
+      <tr>
+        <th><input type=checkbox name=mail_chk_all id=mail_chk_all onClick="fmail_chk_all();"></th>
+        <th>管理者ｺｰﾄﾞ</th>
+        <th>管理者名</th>
+        <th>管理者区分</th>
+        <th>住所</th>
+        <th>Ｅメール</th>
+        <th>&nbsp;</th>
+      </tr>
+    </thead>
+    <tbody>
+      <% @cnt_no = 0 %>
+      <% @m_custom_mails.each do |m_custom_mail| %>
+        <tr>
+          <td align=center><input type=checkbox name=mail_chk[] id=mail_chk_<%= @cnt_no %> value="<%= m_custom_mail.cust_code %>"></td>
+          <td><%= m_custom_mail.cust_code %></td>
+          <td><%= m_custom_mail.cust_name %></td>
+          <td><%= m_custom_mail.type_name %></td>
+          <td><%= m_custom_mail.addr_1 %></td>
+          <td><%= m_custom_mail.email %></td>
+          <td align=center><%= link_to '履歴', 'm_custom_mail/'+m_custom_mail.id.to_s, :class => 'btn btn-mini' %></td></td>
+        </tr>
+        <% @cnt_no = @cnt_no + 1 %>
+      <% end %>
+      <%= hidden_field 'next_flg', '', :value => 1 %>
+    </tbody>
+  </table>
+<% end %>
+<br><br>
+<%= content_for :scripts do %>
+  <script type="text/javascript" charset="utf-8">
+
+    $(function () {
+      $('#send_file_all').css({
+        'position' : 'absolute',
+        'top' : '-9999px'
+      }).change(function () {
+        var val = $(this).val();
+        var path = val.replace(/\\/g, '/');
+        var match = path.lastIndexOf('/');
+        $('#send_file').val(match !== -1 ? val.substring(match + 1) : val);
+       
+      });
+      $('#send_file').bind('keyup, keydown, keypress', function () {
+        return false;
+      });
+      $('#c').click(function () {
+        $('#send_file_all').trigger('click');
+        return false
+      });
+    });
+    
+    function fmail_next_dsp(){
+      var maxCount = eval(<%= @m_custom_mails.length %>);
+      var mail_chk_flg = 0;
+      
+      if(!document.getElementById("subject_txt").value){
+        alert("件名が入っていません。");
+        return false;
+      }
+      if(!document.getElementById("message_txt").value){
+        alert("本文が入っていません。");
+        return false;
+      }
+      for (var i = 0; i < maxCount; i++) {
+        if(document.getElementById("mail_chk_"+i).checked){
+          mail_chk_flg=1;
+          break;
+        }
+      }
+      if(mail_chk_flg==0){
+        alert("送信対象をチェックしてください。");
+        return false;
+      }
+      document.inputform.submit();
+    }
+    function fmail_chk_all(){
+      var maxCount = eval(<%= @m_custom_mails.length %>);
+      
+      for (var i = 0; i < maxCount; i++) { 
+        if(document.getElementById("mail_chk_all").checked){
+          document.getElementById("mail_chk_"+i).checked = true;
+        }else{
+          document.getElementById("mail_chk_"+i).checked = false;
+        }
+      }
+    }
+    function fmail_file_delete(){
+      document.getElementById("send_file").value = "";
+      document.getElementById("send_file_all").value = "";
+      return false;
+    }
+    function submitStop(e){
+      if (!e) var e = window.event;
+      if(e.keyCode == 13)
+      return false;
+    }
+  </script>
+<% end %>
+</div>

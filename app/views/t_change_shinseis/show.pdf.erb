@@ -1,0 +1,61 @@
+<table width="700">
+  <tr><td>返信時：<%= @atesaki.value %></td></tr>
+  <tr><td align=right><%= @t_change_shinsei.shinsei_date.strftime("%Y年%m月%d日") %></td></tr>
+  <tr><td align=center><h1>ＦＡＸ送付書</h1></td></tr>
+  <tr><td><font size=+2>≪あて先≫</font></td></tr>
+  <tr><td>　　　<font size=+1><%= @t_change_shinsei.itaku_name %>　様</font></td></tr>
+  <tr><td><hr>　　　（ＦＡＸ番号：<%= @t_change_shinsei.itaku_fax %>）</td></tr>
+  <tr><td></td><tr>
+  <tr><td>送付文書　　2　枚（この送付書を含む）</td></tr>
+  <tr><td><hr>要　件　　　ごみステーションの<%= @t_change_shinsei.shinsei_name %>について</td></tr>
+  <tr><td><hr></td><tr>
+  <tr><td></td><tr>
+  <tr><td>　　　以下の内容にてＦＡＸを送信いたします。</td></tr>
+  <tr><td>　</td></tr>
+  <tr><td><font size=+2>≪内容・連絡事項≫</font></td></tr>
+  <tr><td><hr><b><%= @t_change_shinsei.cust_name %></b>&nbsp;ごみステーションの<span style="background-color:lightgray;"><%= @t_change_shinsei.shinsei_name %>申請</span>が出ましたので、現地確認をお願いします。</td></tr>
+  <tr><td>＜別紙地図参照＞</td></tr>
+  <tr><td><hr></td><tr>
+  <tr><td></td><tr>
+  <tr><td></td><tr>
+  <tr><td></td><tr>
+  <tr><td><hr></td><tr>
+  <tr><td>回答欄（どちらかに〇をしてください）</td></tr>
+  <tr><td>回答後、この用紙をそのまま環境課までＦＡＸ送信してください。</td></tr>
+  <tr><td>　　・適　　　　　　・不適</td></tr>
+  <tr><td></td><tr>
+  <tr><td></td><tr>
+  <tr><td>不適の場合、その理由</td></tr>
+  <tr><td><p style="padding: 40px; border:thin solid #000000;"><p></td></tr>
+  <tr><td>※確定後は、<u><%= @t_change_shinsei.kibou_date.strftime("%Y年%m月%d日") %>より</u>集配をお願いします。</td><tr>
+  <tr><td></td><tr>
+  <tr><td><hr></td><tr>
+  <tr><td>≪発信者≫　<%= @hasshin.value %></td></tr>
+  <tr><td>　　　　　　<%= @hasshin.value2 %></td></tr>
+  <tr><td>　　　　　　<%= @hasshin.value3 %></td></tr>
+  <tr><td>　　　　　　<%= @hasshin.value4 %></td></tr>
+  <tr><td>　　　　　　<%= @hasshin.value5 %></td></tr>
+</table>
+<table width="700" style="page-break-before: always;">
+  <tr><td>返信時：<%= @atesaki.value %></td></tr>
+  <tr><td align=right><%= @t_change_shinsei.shinsei_date.strftime("%Y年%m月%d日") %></td></tr>
+  <tr><td>　</td></tr>
+  <tr><td>≪住所≫　<%= @t_change_shinsei.addr_1.to_s + " " + @t_change_shinsei.addr_2.to_s %></td></tr>
+  <tr><td></td></tr>
+  <tr><td>詳細地図</td></tr>
+  <% @latlng_aft = "" %>
+  <% @latlng_bef = "" %>
+  <% @line = "" %>
+  <% if @t_change_shinsei.latitude.to_s != @t_change_shinsei.latitude_bef.to_s || @t_change_shinsei.longitude.to_s != @t_change_shinsei.longitude_bef.to_s %>
+    <% @request_url = request.url.to_s.gsub(request.path_info.to_s, "").gsub(Rails.application.config.relative_url_root.to_s, "").gsub("https", "http") %>
+    <% @latlng_aft = "&markers=icon:" + @request_url + "/images/marker_icon_aft.png|" + @t_change_shinsei.latitude.to_s + "," + @t_change_shinsei.longitude.to_s %>
+    <% @latlng_bef = "&markers=icon:" + @request_url + "/images/marker_icon_bef.png|" + @t_change_shinsei.latitude_bef.to_s + "," + @t_change_shinsei.longitude_bef.to_s %>
+    <% @line = "&path=color:0x000000ff|weight:3|" + @t_change_shinsei.latitude_bef.to_s + "," + @t_change_shinsei.longitude_bef.to_s + "|" + @t_change_shinsei.latitude.to_s + "," + @t_change_shinsei.longitude.to_s %>
+  <% else %>
+    <% @latlng_aft = "&markers=" + @t_change_shinsei.latitude.to_s + "," + @t_change_shinsei.longitude.to_s %>
+  <% end %>
+  <tr><td><img border=1 src="http://maps.googleapis.com/maps/api/staticmap?center=<%= @t_change_shinsei.latitude %>,<%= @t_change_shinsei.longitude %><%= @latlng_aft %><%= @latlng_bef %><%= @line %>&zoom=20&size=700x400&language=ja&key=<%= @map_key %>"></td></tr>
+  <tr><td>　</td></tr>
+  <tr><td>広域地図</td></tr>
+  <tr><td><img border=1 src="http://maps.googleapis.com/maps/api/staticmap?markers=<%= @t_change_shinsei.latitude %>,<%= @t_change_shinsei.longitude %>&center=<%= @t_change_shinsei.latitude %>,<%= @t_change_shinsei.longitude %>&zoom=17&size=700x400&key=<%= @map_key %>"></td></tr>
+</table>

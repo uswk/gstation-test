@@ -1,0 +1,14 @@
+class MCustom < ActiveRecord::Base
+
+  #attr_accessible :cust_kbn, :cust_code, :cust_name, :addr_1, :addr_2, :addr_3, :latitude, :longitude, :tel_no, :fax_no, :email, :admin_code, :admin_type, :use_content, :shinsei_date, :haishi_date, :start_date, :end_date, :setai_count, :use_count, :memo, :district_code, :district_name, :seq, :delete_flg, :color, :last_up_user, :icon
+  
+  validates :cust_code, :uniqueness => {:scope => [:cust_kbn], :case_sensitive => false, :message =>"　コードが重複しています。"}
+
+  # has_attached_file :icon, styles: { :medium => "320x240", thumb: "48x48>" },
+  #   storage: :s3,
+  #   s3_permissions: :public_read_write,
+  #   s3_credentials: "#{Rails.root}/config/s3.yml"
+  has_attached_file :icon, styles: { :medium => "320x240", thumb: "48x48>" }
+
+  validates_attachment_content_type :icon, :content_type => ["image/jpg", "image/jpeg", "image/png"]
+end

@@ -1,0 +1,871 @@
+<% content_for :js do %>
+  <%= javascript_include_tag 'common' %>
+<% end %>
+<h1>運転日報登録画面</h1>
+
+<%= form_for(@t_carrun, :html => {:name => "input_form"}) do |f| %>
+  <% if @t_carrun.errors.any? %>
+    <div id="error_explanation">
+      <h2><%= pluralize(@t_carrun.errors.count, "error") %> prohibited this t_carrun from being saved:</h2>
+
+      <ul>
+      <% @t_carrun.errors.full_messages.each do |msg| %>
+        <li><%= msg %></li>
+      <% end %>
+      </ul>
+    </div>
+  <% end %>
+  <table>
+    <thead>
+      <tr>
+        <th>収集区</th>
+        <td colspan=3><%= @routename %></td>
+        <%= f.hidden_field :route_code, value: @routecode %>
+      </tr>
+      <tr>
+        <th>車両</th>
+        <td><%= f.select :car_code, @car_codes, { :include_blank => true, :selected => @chg_flg==1 ? @carcode.to_s : f.object.car_code} %></td>
+        <th>走行距離(GPS)</th>
+        <td><%= f.text_field :run_distance, value: f.object.run_distance, :size => 11, :maxlength => 10 %>&nbsp;km</td>
+      </tr>
+      <tr>
+        <th>運転手</th>
+        <td colspan=3><%= f.select :driver_code, @driver_codes, { :include_blank => true} %></td>
+      </tr>
+      <tr>
+        <th>副乗務員1</th>
+        <td colspan=3><%= f.select :sub_driver_code1, @driver_codes, { :include_blank => true} %></td>
+      </tr>
+      <tr>
+        <th>副乗務員2</th>
+        <td colspan=3><%= f.select :sub_driver_code2, @driver_codes, { :include_blank => true} %></td>
+      </tr>
+      <tr>
+        <th>出庫日時</th>
+        <td><%= f.text_field :out_timing, value: @chg_flg==1 ? @outtiming.to_s : (f.object.out_timing.try(:strftime, "%Y/%m/%d %H:%M:%S")), :class => 'timepicker', :size => 17, :maxlength => 19 %></td>
+        <th>出庫メーター値</th>
+        <td><%= f.text_field :mater_out, value: f.object.mater_out, :size => 13, :maxlength => 11 %>&nbsp;km</td>
+      </tr>
+      <tr>
+        <th>帰庫日時</th>
+        <td><%= f.text_field :in_timing, value: (f.object.in_timing.try(:strftime, "%Y/%m/%d %H:%M:%S")), :class => 'timepicker', :size => 17, :maxlength => 19 %></td>
+        <th>帰庫メーター値</th>
+        <td><%= f.text_field :mater_in, value: f.object.mater_in, :size => 13, :maxlength => 11 %>&nbsp;km</td>
+      </tr>
+      <%= f.hidden_field :input_flg, value: @input_flg %>
+      <%= f.hidden_field :use_item_flg, value: @use_item_flg %>
+      <%= hidden_field_tag :iCount, @iCount %>
+      <%= hidden_field_tag :iCount_unload, @iCount_unload %>
+    </thead>
+  </table>
+  <br>
+  <div id='overflow' style='overflow: scroll; height:50vh'>
+    <table id='route_tag_sub' _fixedhead="rows:1; cols:2; div-auto-size: none;">
+      <thead>
+        <tr>
+          <th width=20%><nobr>ｽﾃｰｼｮﾝID</nobr></th>
+          <th width=30%><nobr>ステーション名</nobr></th>
+          <th width=10%><nobr>収集時刻</nobr></th>
+          <% if @use_item_flg.to_s=="1" and @iCount>0 %>
+            <% @t_collect_details.each do |t_collect_detail| %>
+              <th width=10%><nobr><%= t_collect_detail.item_name.to_s %></nobr></th>
+            <% end %>
+            <p id='div_header_item'></p>
+          <% end %>
+          <th width=10%><nobr>未回収数量</nobr></th>
+          <th width=20%><nobr>未回収理由</nobr></th>
+          <th width=5%><nobr>メモ</nobr></th>
+          <th width=5%><nobr>削除</nobr></th>
+        </tr>
+      </thead>
+      <tbody>
+        <% @cnt_no = 0 %>
+        <% if not @m_route_points.blank? %>
+          <% @m_route_points.each do |m_route_point| %>
+            <% if m_route_point.tree_no.nil? %>
+            <% else %>
+              <tr id=div_tree_no_<%= m_route_point.tree_no %> style="background-color:<%= m_route_point.bgcolor %>;">
+                <td><nobr><%= m_route_point.cust_code %></nobr></td>
+                <td><nobr><%= m_route_point.cust_name %></nobr></td>
+                <%= hidden_field 'cust_kbn', '', :value => m_route_point.cust_kbn %>
+                <%= hidden_field 'cust_code', '', :value => m_route_point.cust_code %>
+                <%= hidden_field 'cust_name', '', :value => m_route_point.cust_name %>
+                <%= hidden_field 'latitude', '', :value => m_route_point.latitude %>
+                <%= hidden_field 'longitude', '', :value => m_route_point.longitude %>
+                <%= hidden_field 'tree_no', m_route_point.cust_code, :value => m_route_point.tree_no %>
+                <%= hidden_field 'finish_timing_org', '', :value => m_route_point.finish_timing.nil? ? "" : m_route_point.finish_timing.strftime("%H:%M:%S") %>
+                <td><nobr><input type=text id=finish_timing_<%= m_route_point.tree_no %> name=finish_timing[] size=5 maxlength=8 value ="<%= m_route_point.finish_timing.nil? ? "" : m_route_point.finish_timing.strftime("%H:%M:%S") %>" onchange="f_marker_dsp_carrun();"></nobr></td>
+                <% if @use_item_flg.to_s=="1" and @iCount>0 %>
+                  <% for num in 1..@iCount %>
+                    <td><nobr><input type=text id=item_count_<%= num.to_s %>_<%= m_route_point.tree_no %> name=item_count_<%= num.to_s %>[] size=3 maxlength=10 value ="<%= m_route_point["item_count_"+num.to_s].blank? ? "" : m_route_point["item_count_"+num.to_s].to_f%1==0 ? m_route_point["item_count_"+num.to_s].to_i : m_route_point["item_count_"+num.to_s] %>">&nbsp;<%= m_route_point["unit_name_" + num.to_s] %></nobr></td>
+                    <input type=hidden id=item_kbn_<%= num.to_s %>_<%= m_route_point.tree_no %> name=item_kbn_<%= num.to_s %>[] value ="<%= m_route_point["item_kbn_"+num.to_s].to_i %>">
+                    <input type=hidden id=unit_kbn_<%= num.to_s %>_<%= m_route_point.tree_no %> name=unit_kbn_<%= num.to_s %>[] value ="<%= m_route_point["unit_kbn_"+num.to_s].to_i %>">
+                  <% end %>
+                <% end %>
+                <td><nobr><input type=text id=mikaishu_count_<%= m_route_point.tree_no %> name=mikaishu_count[] size=3 maxlength=5 value ="<%= m_route_point.mikaishu_count.blank? ? "" : m_route_point.mikaishu_count.to_f%1==0 ? m_route_point.mikaishu_count.to_i : m_route_point.mikaishu_count %>" onchange="f_marker_dsp_carrun();"></nobr></td>
+                <td>
+                  <nobr>
+                  <select id=mikaishu_code_<%= m_route_point.tree_no %> name=mikaishu_code[]  onchange=f_marker_dsp_carrun();>
+                    <option value=''></option>
+                    <% @mikaishu_codes.each do |mikaishu| %>
+                      <% if mikaishu[1].to_s == m_route_point.mikaishu_code.to_s %>
+                        <option value=<%= mikaishu[1] %> selected><%= mikaishu[0] %></option>
+                      <% else %>
+                        <option value=<%= mikaishu[1] %>><%= mikaishu[0] %></option>
+                      <% end %>
+                    <% end %>
+                  </select>
+                  </nobr>
+                </td>
+                <td>
+                  <% if not m_route_point.memo_flg.blank? %>
+                    <% @url_path = uncollect_path.to_s + "/" + @t_carrun.id.to_s + "?collect_flg=1&finish_timing=" + ERB::Util.url_encode(m_route_point.finish_timing.try(:strftime, "%Y-%m-%d %H:%M:%S").to_s) + "&cust_kbn=" + ERB::Util.url_encode(m_route_point.cust_kbn.to_s) + "&cust_code=" + ERB::Util.url_encode(m_route_point.cust_code.to_s) + "&cust_name=" + ERB::Util.url_encode(m_route_point.cust_name.to_s)  + "&mikaishu_name=" + ERB::Util.url_encode(m_route_point.mikaishu_name.to_s) + "&mikaishu_count=" + m_route_point.mikaishu_count.to_s %>
+                    <nobr><input type=button value='メモ' onclick='return JCollectMemoDisplay("<%= @url_path %>");' class='btn btn-mini'></nobr>
+                  <% end %>
+                </td>
+                <td><nobr><input type=button value="削除" onClick="fcarrun_dlt(<%= m_route_point.tree_no %>, '<%= m_route_point.cust_kbn %>', '<%= m_route_point.cust_code %>', '<%= ERB::Util.url_encode(m_route_point.cust_name) %>', '<%= ERB::Util.url_encode(@mikaishu_codes) %>', '<%= m_route_point.latitude %>', '<%= m_route_point.longitude %>')"; class='btn btn-mini btn-danger'></nobr></td>
+              </tr>
+              <% @cnt_no = @cnt_no + 1 %>
+            <% end %>
+          <% end %>
+        <% end %>
+        <input type=hidden id=m_route_point_cnt_no name=cnt_no value="<%= @cnt_no + 1 %>">
+        <input type=hidden id=routecode name=routecode value="<%= params[:routecode] %>">
+        <input type=hidden id=chg_flg name=chg_flg value="<%= @chg_flg %>">
+        <%= hidden_field_tag :hold_params, 1 %>
+        <%= hidden_field_tag :search_page, params[:search_page] %>
+        <%= hidden_field_tag :search_outdate_from, params[:outdate_from] %>
+        <%= hidden_field_tag :search_outdate_to, params[:outdate_to] %>
+        <%= hidden_field_tag :search_routecode, params[:routecode] %>
+        <%= hidden_field_tag :search_itakucode, params[:itakucode] %>
+      </tbody>
+    </table>
+  </div>
+  <% @cnt_no_unload = 0 %>
+  <% if not @unload_flg.blank? %>
+    <br>
+    <div id='overflow' style='overflow: scroll; height:20vh'>
+      <table id='unload_tag_sub' _fixedhead="rows:1; cols:2; div-auto-size: none;">
+        <thead>
+          <tr>
+            <th width=20%><nobr>荷下先ID</nobr></th>
+            <th width=30%><nobr>荷下先名</nobr></th>
+            <th width=10%><nobr>荷下時刻</nobr></th>
+            <% if @iCount_unload>0 %>
+              <% @unload_details.each do |unload_detail| %>
+                <th width=10%><nobr><%= unload_detail.item_name.to_s %></nobr></th>
+              <% end %>
+              <p id='div_header_item_unload'></p>
+            <% end %>
+            <th width=5%><nobr>削除</nobr></th>
+          </tr>
+        </thead>
+        <tbody>
+          <% if not @unloads.blank? %>
+            <% @unloads.each do |unload| %>
+              <tr id=div_tree_no_unload_<%= unload.tree_no %>>
+                <td><nobr><%= unload.cust_code %></nobr></td>
+                <td><nobr><%= unload.cust_name %></nobr></td>
+                <%= hidden_field 'unload_cust_kbn', '', :value => unload.cust_kbn %>
+                <%= hidden_field 'unload_cust_code', '', :value => unload.cust_code %>
+                <%= hidden_field 'unload_cust_name', '', :value => unload.cust_name %>
+                <%= hidden_field 'unload_latitude', '', :value => unload.latitude %>
+                <%= hidden_field 'unload_longitude', '', :value => unload.longitude %>
+                <%= hidden_field 'unload_tree_no', unload.cust_code, :value => unload.tree_no %>
+                <td><nobr><input type=text id=unload_finish_timing_<%= unload.tree_no %> name=unload_finish_timing[] size=5 maxlength=8 value ="<%= unload.finish_timing.nil? ? "" : unload.finish_timing.strftime("%H:%M:%S") %>"></nobr></td>
+                <% if @iCount_unload > 0 %>
+                  <% for num in 1..@iCount_unload %>
+                    <td>
+                      <nobr><input type=text id=unload_item_count_<%= num.to_s %>_<%= unload.tree_no %> name=unload_item_count_<%= num.to_s %>[] size=3 maxlength=10 value ="<%= unload["item_count_"+num.to_s].blank? ? "" : unload["item_count_"+num.to_s].to_f%1==0 ? unload["item_count_"+num.to_s].to_i : unload["item_count_"+num.to_s] %>">&nbsp;<%= unload["unit_name_" + num.to_s] %></nobr>
+                      <input type=hidden id=unload_item_kbn_<%= num.to_s %>_<%= unload.tree_no %> name=unload_item_kbn_<%= num.to_s %>[] value ="<%= unload["item_kbn_"+num.to_s].to_i %>">
+                      <input type=hidden id=unload_unit_kbn_<%= num.to_s %>_<%= unload.tree_no %> name=unload_unit_kbn_<%= num.to_s %>[] value ="<%= unload["unit_kbn_"+num.to_s].to_i %>">
+                    </td>
+                  <% end %>
+                <% end %>
+                <td><nobr><input type=button value="削除" onClick="fcarrun_unload_dlt(<%= unload.tree_no %>)"; class='btn btn-mini btn-danger'></nobr></td>
+              </tr>
+              <% @cnt_no_unload = @cnt_no_unload + 1 %>
+            <% end %>
+          <% end %>
+        </tbody>
+      </table>
+    </div>
+  <% end %>
+  <input type=hidden id=cnt_no_unload name=cnt_no_unload value="<%= @cnt_no_unload %>">
+  <br>
+  <div class="actions">
+    <% if current_user.authority!=9 %>
+      <input type=button value="更新" onClick="fcarrun_upd();" class='btn btn-primary'>&nbsp;&nbsp;
+      <% if @use_item_flg.to_s=="1" %>
+        <input type=button value="ごみ種類挿入" onClick="fitem_add_display();" id='btnItemAdd' class='btn'>&nbsp;&nbsp;
+        <input type=button value="ごみ種類削除" onClick="fitem_dlt_display();" id='btnItemDlt' class='btn btn-danger'>&nbsp;&nbsp;
+      <% end %>
+    <% end %>
+    
+    <% @url_path = t_carruns_path.to_s + "?search[date_from]=" + ERB::Util.url_encode(params[:outdate_from].to_s) + "&search[date_to]=" + ERB::Util.url_encode(params[:outdate_to].to_s) + "&search[route]=" + ERB::Util.url_encode(params[:routecode].to_s) + "&search[itaku]=" + ERB::Util.url_encode(params[:itakucode].to_s) + "&page=" + params[:search_page].to_s %>
+    <%= link_to '戻る', @url_path, :class => 'btn', :style=>'text-decoration:none;' %>
+  </div>
+<% end %>
+<form action="t_collect_lists" data-remote="true" id="marker_form" name="marker_form" method="post">
+  <%= hidden_field 'marker_flg', '', :value => 1 %>
+  <%= hidden_field 'northeast_lat', '' %>
+  <%= hidden_field 'southwest_lat', '' %>
+  <%= hidden_field 'northeast_lng', '' %>
+  <%= hidden_field 'southwest_lng', '' %>
+  <%= hidden_field 'carrun_id', '', :value => @t_carrun.blank? ? nil:@t_carrun.id %>
+</form>
+<div id="modal_unload" style="display:none;">
+  <form action="t_collect_lists" data-remote="true" id="unload_form" name="unload_form" method="post">
+    
+  </form>
+</div>
+<form action="t_collect_lists" data-remote="true" id="add_form" name="add_form" method="post">
+</form>
+<br>
+<div id="layer"></div>
+ズームレベル：<span id=span_map_zoom_size></span><span id=span_station_display style="display:none; color:red;">&nbsp;【ステーション非表示】※ズームレベル16以上で表示されます</span>
+<% if not @map_zenrin_cid.blank? %>
+  <input type=button value="ゼンリン住宅地図" class='btn' style="position:relative; top:-20px; left:-10px; float: right;" onclick=fzenrin_common_map_display("<%= root_url(only_path: false) %>");>
+<% end %>
+<br>
+<div class="map_container">
+  <div id="map_canvas" style="width:100%; height:500px"></div>
+</div>
+<br>
+<div id="modal" style="display:none;">
+  <br>
+  <table>
+    <thead>
+      <tr>
+        <th>収集時刻</th>
+        <td><%= text_field 'finish_timing_new', '', :size=>10, :maxlength=>8 %></td>
+      </tr>
+      <tr>
+        <th>未回収数量</td>
+        <td><%= text_field 'mikaishu_count_new', '', :size=>7, :maxlength=>5 %></td>
+      </tr>
+      <tr>
+        <th>未回収理由</td>
+        <td><%= select 'mikaishu_code_new', '', @mikaishu_codes, { :include_blank => true} %></td>
+      </tr>
+    </thead>
+  </table>
+  <br>
+  <div class="actions">
+    <%= hidden_field 'latitude_new', '' %>
+    <%= hidden_field 'longitude_new', '' %>
+    &nbsp;&nbsp;<input type=button value="一覧に追加" onClick="funregist_station_add();" class='btn btn-primary'>
+  </div>
+</div>
+<div id="modal_memo" style="display:none;">
+  <span id=tag_sub_memo></span>
+</div>
+<div id="modal_item" style="display:none;">
+  <br>
+  <table>
+    <thead>
+      <tr>
+        <th>ごみの種類</th>
+        <td><%= select 'item_kbn_new', '', @item_kbns, { :include_blank => true} %></td>
+      </tr>
+      <tr>
+        <th>単位</td>
+        <td><%= select 'unit_kbn_new', '', @unit_kbns, { :include_blank => true} %></td>
+      </tr>
+    </thead>
+  </table>
+  <br>
+  <div class="actions">
+    &nbsp;&nbsp;<input type=button value="一覧に追加" onClick="fitem_add();" class='btn btn-primary'>
+  </div>
+</div>
+<div id="modal_item_dlt" style="display:none;">
+  <br>
+  <table>
+    <thead>
+      <tr>
+        <th>ごみの種類</th>
+        <td><%= select 'item_kbn_dlt', '', '',{ :include_blank => true} %></td>
+      </tr>
+    </thead>
+  </table>
+  <br>
+  <div class="actions">
+    &nbsp;&nbsp;<input type=button value="一覧から削除" onClick="fitem_dlt();" class='btn btn-danger'>
+  </div>
+</div>
+<% content_for :scripts do %>
+  <script src="//maps.googleapis.com/maps/api/js?language=ja&key=<%= @map_key %>"></script>
+  <script src="//google-maps-utility-library-v3.googlecode.com/svn/tags/markerclustererplus/2.0.14/src/markerclusterer_packed.js" type="text/javascript"></script>
+  <script type="text/javascript" charset="utf-8">
+    var arrItemKbn = new Array();
+    var arrItemName = new Array();
+    var arrUnitKbn = new Array();
+    var arrUnitName = new Array();
+    var arrItemKbnUnload = new Array();
+    var arrItemNameUnload = new Array();
+    var marker = new Array();
+    var marker_unload = new Array();
+    var myLatlng = new google.maps.LatLng("<%= @def_lat %>","<%= @def_lng %>");
+    var mapOptions = {
+      auto_zoom: true,
+      zoom: 18,
+      auto_adjust: false,
+      center: myLatlng,
+      gestureHandling: "greedy",
+      mapTypeId: google.maps.MapTypeId.ROADMAP
+    }
+    var map = new google.maps.Map(document.getElementById("map_canvas"), mapOptions);
+    
+    //テーブルヘッダ固定用プラグイン
+    FixedMidashi.create();
+
+    //廃棄物配列に保管
+    var itemCount = 0;
+    <% if @use_item_flg.to_s=="1" and @iCount>0 %>
+      <% @t_collect_details.each do |t_collect_detail| %>
+        arrItemKbn[itemCount] = "<%= t_collect_detail.item_kbn.to_s %>";
+        arrItemName[itemCount] = "<%= t_collect_detail.item_name.to_s %>";
+        arrUnitKbn[itemCount] = "<%= t_collect_detail.unit_kbn.to_s %>";
+        arrUnitName[itemCount] = "<%= t_collect_detail.unit_name.to_s %>";
+        itemCount = itemCount + 1;
+      <% end %>
+    <% end %>
+    
+    var itemCountUnload = 0;
+    <% if @iCount_unload>0 %>
+      <% @unload_details.each do |unload_detail| %>
+        arrItemKbnUnload[itemCountUnload] = "<%= unload_detail.item_kbn.to_s %>";
+        arrItemNameUnload[itemCountUnload] = "<%= unload_detail.item_name.to_s %>";
+        itemCountUnload = itemCountUnload + 1;
+      <% end %>
+    <% end %>
+
+    var latlngData2 = (new Function("return " + "[" + decodeURIComponent("<%= @latlng %>")+ "]"))();
+    var arrCoords2 = new Array();  
+    for (i = 0;i < latlngData2.length;i++) {  
+        // 座標地をlatlng値に変換  
+        var latlng2 = new google.maps.LatLng(latlngData2[i].lat, latlngData2[i].lng);  
+        // latlng値を配列に退避  
+        arrCoords2.push(latlng2);  
+    }
+    // ポリゴン(多角形)を生成し、マップに表示  
+    var poly2 = new google.maps.Polygon({  
+        map: map,              //マップ  
+        paths: arrCoords2,     //閉ループを示す座標列  
+        strokeWeight: 2,       //ストローク幅(ピクセル単位)  
+        strokeColor: "#f01010",//ストロークの色(16進数形式)  
+        strokeOpacity: 0.5,    //ストロークの不透明度  
+        fillColor: "#fc4040",  //塗りつぶしの色(16進数形式)  
+        fillOpacity: 0.05       //塗りつぶしの不透明度(0.0～1.0)  
+    });
+
+    //地図移動時
+    google.maps.event.addListener(map, 'idle', function(object) {
+      f_marker_dsp_carrun();
+    });
+    
+    //右クリック時
+    google.maps.event.addListener(poly2, 'rightclick', function(object) {
+      funregist_station_input(object);
+    });
+    
+    google.maps.event.addListener(map, 'rightclick', function(object) {
+      funregist_station_input(object);
+    });
+
+    //収集情報入力画面表示
+    function funregist_station_input(object){
+      document.getElementById("finish_timing_new_").value ="";
+      document.getElementById("mikaishu_count_new_").value ="";
+      document.getElementById("mikaishu_code_new_").selectedIndex = 0;
+      document.getElementById("latitude_new_").value = object.latLng.lat();
+      document.getElementById("longitude_new_").value = object.latLng.lng();
+      
+      $('#modal').dialog({
+        title: "スポットでの収集情報追加　",
+        modal: true,
+        show : "fade",
+        hide : "fade",
+        width: 600,
+        height: 300,
+        open:function(event, ui){ 
+          $(".ui-dialog-titlebar-close").show();
+        }
+      });
+    }
+    //収集情報一覧追加
+    function funregist_station_add(){
+      //エラーチェック
+      if (document.getElementById("finish_timing_new_").value.length==0) {
+        alert("収集時刻は入力必須です。");
+        return false;
+      }
+      if (commonCkTime(document.getElementById("finish_timing_new_").value)==false) {
+        alert("収集時刻の形式が正しくありません。（hh:mm:ss）");
+        return false;
+      }
+      if (document.getElementById("mikaishu_count_new_").value.length>0 && isNaN(document.getElementById("mikaishu_count_new_").value)==true) {
+        alert("未回収数量は数値で入力してください。");
+        return false;
+      }
+      var latitude = document.getElementById("latitude_new_").value;
+      var longitude = document.getElementById("longitude_new_").value;
+      var finish_timing = document.getElementById("finish_timing_new_").value;
+      var mikaishu_count = document.getElementById("mikaishu_count_new_").value;
+      var mikaishu_code = document.getElementById("mikaishu_code_new_").value;
+      
+      //一覧に追加
+      fcarrun_add('1','*','',encodeURIComponent('"<%= @mikaishu_codes %>"'),latitude,longitude,'lightgreen',finish_timing,mikaishu_count,mikaishu_code);
+      
+      //テーブルヘッダ固定用プラグイン再セット
+      FixedMidashi.remove();
+      FixedMidashi.create();
+      
+      //モーダル閉じる
+      $('#modal').dialog( "close" );
+    }
+    //メモ表示
+    function JCollectMemoDisplay(url_path){
+      var strHtml;
+      var intWidth = eval(window.innerWidth)*9/10;
+      var intHeight = eval(window.innerHeight)*9/10;
+      $("div#tag_memo").remove();
+      strHtml = "<div id='tag_memo'>";
+      strHtml = strHtml + "<iframe src=" + url_path + " height=" + (intHeight*9/10) + " width=" + (intWidth*9/10) + ">";
+      strHtml = strHtml + "</iframe>";
+      strHtml = strHtml + "</div>";
+      $("#tag_sub_memo").after(strHtml);
+      $('#modal_memo').dialog({
+        title: "メモ表示　",
+        modal: true,
+        show : "fade",
+        hide : "fade",
+        width: intWidth,
+        height: intHeight,
+        open:function(event, ui){ 
+          $(".ui-dialog-titlebar-close").show();
+        }
+      });
+    }
+
+    //行追加（運転日報登録）
+    function fcarrun_add(cust_kbn, cust_code, cust_name, mikaishu_codes, latitude, longitude, bgcolor, finish_timing, mikaishu_count, mikaishu_code){
+      var cnt_no = eval(document.getElementById("m_route_point_cnt_no").value) + 1;
+      $("#route_tag_sub").append(fhtml_carrun(cnt_no, cust_kbn, cust_code, cust_name, mikaishu_codes, latitude, longitude, bgcolor, finish_timing, mikaishu_count, mikaishu_code));
+      document.getElementById("m_route_point_cnt_no").value = cnt_no;
+      f_marker_dsp_carrun();
+    }
+
+    function fhtml_carrun(cnt_no, cust_kbn, cust_code, cust_name, mikaishu_codes, latitude, longitude, bgcolor, finish_timing, mikaishu_count, mikaishu_code){
+      var ary = decodeURIComponent(mikaishu_codes);
+      ary = ary.replace(/"/g, "");
+      ary = ary.split("[").join("");
+      ary = ary.split("]").join("");
+      ary = ary.split("&quot;").join("");
+
+      var ahtml = "";
+      ahtml += "<tr id=div_tree_no_" + cnt_no + " style=\"background-color:" + bgcolor + ";\">";
+      ahtml += "<td><nobr>" + cust_code + "</nobr></td>";
+      ahtml += "<td><nobr>" + decodeURIComponent(cust_name) + "</nobr></td>";
+      ahtml += "<input type=hidden id=cust_kbn_ name=cust_kbn[] value=" + cust_kbn + ">";
+      ahtml += "<input type=hidden id=cust_code_ name=cust_code[] value=" + cust_code + ">";
+      ahtml += "<input type=hidden id=cust_name_ name=cust_name[] value=" + decodeURIComponent(cust_name) + ">";
+      ahtml += "<input type=hidden id=latitude_ name=latitude[] value=" + latitude + ">";
+      ahtml += "<input type=hidden id=longitude_ name=longitude[] value=" + longitude + ">";
+      ahtml += "<input type=hidden id=tree_no_" + cust_code + " name=tree_no[" + cust_code + "] value=" + cnt_no + ">";
+      ahtml += "<input type=hidden id=finish_timing_org_ name=finish_timing_org[] value='" + finish_timing + "'>";
+      ahtml += "<td><nobr><input type=text id=finish_timing_" + cnt_no + " name=finish_timing[] value='" + finish_timing + "' size=5 maxlength=8 onchange=f_marker_dsp_carrun();></nobr></td>";
+
+      <% if @use_item_flg.to_s=="1" %>
+        for(var iCount = 1; iCount <= eval(document.getElementById("iCount").value); iCount++){
+          if(arrItemKbn[iCount-1]!=""){
+            ahtml += "<td><nobr><input type=text id=item_count_" + iCount + "_" + cnt_no + " name=item_count_" + iCount + "[] size=3 maxlength=10>&nbsp;" + arrUnitName[iCount-1] + "</nobr></td>";
+            ahtml += "<input type=hidden id=item_kbn_" + iCount + "_" + cnt_no + " name=item_kbn_" + iCount + "[] value=" + arrItemKbn[iCount-1] + ">";
+            ahtml += "<input type=hidden id=unit_kbn_" + iCount + "_" + cnt_no + " name=unit_kbn_" + iCount + "[] value=" + arrUnitKbn[iCount-1] + ">";
+          }
+        }
+      <% end %>
+      ahtml += "<td><nobr><input type=text id=mikaishu_count_" + cnt_no + " name=mikaishu_count[] value='" + mikaishu_count + "' size=3 onchange=f_marker_dsp_carrun();></nobr></td>";
+      ahtml += "<td><nobr>";
+      ahtml += "<select id=mikaishu_code_" + cnt_no + " name=mikaishu_code[]  onchange=f_marker_dsp_carrun();>";
+      ahtml += "<option value=''></option>";
+      for(var i = 0; i < ary.split(",").length; i++){
+        if (i % 2 != 0){
+          if (eval(ary.split(",")[i]) == eval(mikaishu_code)) {
+            ahtml += "<option value=" + ary.split(",")[i] + " selected>" + ary.split(",")[i-1] + "</option>";
+          }else{
+            ahtml += "<option value=" + ary.split(",")[i] + ">" + ary.split(",")[i-1] + "</option>";
+          }
+        }
+      }
+      ahtml += "</select>";
+      ahtml += "</nobr></td>";
+      ahtml += "<td><nobr>&nbsp;</nobr></td>";
+      ahtml += "<td><nobr><input type=button value='削除' onClick=fcarrun_dlt(" + cnt_no + ",'" + cust_kbn + "','" + cust_code + "','" + cust_name + "','" + mikaishu_codes + "','" + latitude + "','" + longitude + "'); class='btn btn-mini btn-danger'></nobr></td>";
+      ahtml += "</tr>";
+
+      return ahtml;
+    }
+
+    //行削除
+    function fcarrun_dlt(tree_no, cust_kbn, cust_code, cust_name, mikaishu_codes, latitude, longitude){
+      $("tr#div_tree_no_" + tree_no).remove();
+      f_marker_dsp_carrun();
+    }
+    
+    //荷下先行追加
+    function fcarrun_unload_add(cust_kbn, cust_code, cust_name, latitude, longitude, finish_timing, arrIndust){
+      var cnt_no = eval(document.getElementById("cnt_no_unload").value) + 1;
+      
+      finish_timing = document.getElementById("time_"+cust_code).value;
+      $("#unload_tag_sub").append(fhtml_carrun_unload(cnt_no, cust_kbn, cust_code, cust_name, latitude, longitude, finish_timing, arrIndust));
+      document.getElementById("cnt_no_unload").value = cnt_no;
+
+      //テーブルヘッダ固定用プラグイン再セット
+      FixedMidashi.remove();
+      FixedMidashi.create();
+      
+      f_marker_dsp_carrun();
+    }
+    
+    function fhtml_carrun_unload(cnt_no, cust_kbn, cust_code, cust_name, latitude, longitude, finish_timing, arrIndust){
+      var iCount_unload = eval(document.getElementById("iCount_unload").value);
+      var itemCnt_unload = iCount_unload;
+      cnt_no = eval(cnt_no)+10000;
+      //廃棄物情報取得
+      // テーブル取得
+      var table = document.getElementById("unload_tag_sub");
+      // 行数取得
+      var rows = table.rows.length;
+
+      arrIndust = (new Function("return " + "[" + decodeURIComponent(arrIndust) + "]"))();
+      for(key in arrIndust){
+        var jyogai_flg = 0;
+        //廃棄物存在チェック
+        if(rows>1){
+          for(var j=1; j <=iCount_unload; j++){
+            //同じ廃棄物なら除外
+            if(arrItemKbnUnload[j-1]==arrIndust[key].indust_kbn){
+              jyogai_flg=1;
+              break;
+            }
+          }
+        }
+        if(jyogai_flg==0){
+          //配列に追加
+          arrItemKbnUnload[itemCnt_unload] = arrIndust[key].indust_kbn;
+          arrItemNameUnload[itemCnt_unload] = arrIndust[key].indust_name;
+          // 各行末尾にセルを追加
+          for ( var i = 0; i < rows; i++) {
+            var cell = table.rows[i].insertCell(3+itemCnt_unload);
+            
+            if(i==0){
+              cell.outerHTML = "<th>" + arrIndust[key].indust_name + "</th>";
+            }else{
+              strHtml = "<td><nobr><input type=text id=unload_item_count_" + (itemCnt_unload+1) + "_" + (i+10000) + " name=unload_item_count_" + (itemCnt_unload+1) + "[] size=3 maxlength=10></nobr></td>";
+              strHtml = strHtml + "<input type=hidden id=unload_item_kbn_" + (itemCnt_unload+1) + "_" + (i+10000) + " name=unload_item_kbn_" + (itemCnt_unload+1) + "[] value = '" + arrIndust[key].indust_kbn + "'>";
+              strHtml = strHtml + "<input type=hidden id=unload_unit_kbn_" + (itemCnt_unload+1) + "_" + (i+10000) + " name=unload_unit_kbn_" + (itemCnt_unload+1) + "[]>";
+              cell.outerHTML = strHtml;
+            }
+          }
+          itemCnt_unload += 1;
+        }
+      }
+      document.getElementById("iCount_unload").value = itemCnt_unload;
+      var ahtml = "";
+      ahtml += "<tr id=div_tree_no_unload_" + cnt_no + " style=\"background-color:" + bgcolor + ";\">";
+      ahtml += "<td><nobr>" + cust_code + "</nobr></td>";
+      ahtml += "<td><nobr>" + decodeURIComponent(cust_name) + "</nobr></td>";
+      ahtml += "<input type=hidden id=unload_cust_kbn_ name=unload_cust_kbn[] value=" + cust_kbn + ">";
+      ahtml += "<input type=hidden id=unload_cust_code_ name=unload_cust_code[] value=" + cust_code + ">";
+      ahtml += "<input type=hidden id=unload_cust_name_ name=unload_cust_name[] value=" + decodeURIComponent(cust_name) + ">";
+      ahtml += "<input type=hidden id=unload_latitude_ name=unload_latitude[] value=" + latitude + ">";
+      ahtml += "<input type=hidden id=unload_longitude_ name=unload_longitude[] value=" + longitude + ">";
+      ahtml += "<input type=hidden id=unload_tree_no_" + cust_code + " name=unload_tree_no[" + cust_code + "] value=" + cnt_no + ">";
+      ahtml += "<td><nobr><input type=text id=unload_finish_timing_" + cnt_no + " name=unload_finish_timing[] value='" + finish_timing + "' size=5 maxlength=8></nobr></td>";
+      
+      for(var i=1; i<=itemCnt_unload; i++){
+        var ItemCount="";
+        var UnitKbn="";
+        var UnitName="";
+        for(key in arrIndust){
+          if(arrIndust[key].indust_kbn==arrItemKbnUnload[i-1]){
+            ItemCount = document.getElementById("qty_" + cust_code + "_" + arrIndust[key].indust_kbn).value
+            UnitKbn = arrIndust[key].unit_kbn
+            UnitName = arrIndust[key].unit_name
+          }
+        }
+        ahtml += "<td>";
+        ahtml += "<nobr><input type=text id=unload_item_count_" + i + "_" + cnt_no + " name=unload_item_count_" + i + "[] size=3 maxlength=10 value='" + ItemCount + "'>&nbsp;" + UnitName + "</nobr>";
+        ahtml += "<input type=hidden id=unload_item_kbn_" + i + "_" + cnt_no + " name=unload_item_kbn_" + i + "[] value = '" + arrItemKbnUnload[i-1] + "'>";
+        ahtml += "<input type=hidden id=unload_unit_kbn_" + i + "_" + cnt_no + " name=unload_unit_kbn_" + i + "[] value = '" + UnitKbn + "'>";
+        ahtml += "</td>";
+      }
+      ahtml += "<td><nobr><input type=button value='削除' onClick=fcarrun_unload_dlt(" + cnt_no + "); class='btn btn-mini btn-danger'></nobr></td>";
+      ahtml += "</tr>";
+
+      return ahtml;
+    }
+
+    //荷下先行削除
+    function fcarrun_unload_dlt(tree_no){
+      $("tr#div_tree_no_unload_" + tree_no).remove();
+    }
+    
+    //更新処理
+    function fcarrun_upd(){
+      //エラーチェック
+      if(document.getElementById("t_carrun_car_code").selectedIndex==0){
+        alert("車両を選択してください。");
+        return false;
+      }
+      if(document.getElementById("t_carrun_driver_code").selectedIndex==0 && (document.getElementById("t_carrun_sub_driver_code1").selectedIndex>0 || document.getElementById("t_carrun_sub_driver_code2").selectedIndex>0)){
+        alert("副乗務員を選択している場合は運転手を選択してください。");
+        return false;
+      }
+      if (document.getElementById("t_carrun_out_timing").value.length<=0) {
+        alert("出庫日時は入力必須です。");
+        return false;
+      }
+      if (commonCkDateTime(document.getElementById("t_carrun_out_timing").value)==false) {
+        alert("出庫日時の形式が正しくありません。（yyyy/mm/dd hh:mm:ss）");
+        return false;
+      }
+      chkflg = true;
+      if (document.getElementById("t_carrun_in_timing").value.length>0 && commonCkDateTime(document.getElementById("t_carrun_in_timing").value)==false) {
+        alert("帰庫日時の形式が正しくありません。（yyyy/mm/dd hh:mm:ss）");
+        return false;
+      }
+      if(document.getElementById("t_carrun_run_distance").value.length>0  && isNaN(document.getElementById("t_carrun_run_distance").value)==true){
+        alert("走行距離は数値で入力してください。");
+        return false;
+      }
+      if(document.getElementById("t_carrun_mater_out").value.length>0  && isNaN(document.getElementById("t_carrun_mater_out").value)==true){
+        alert("出庫メーター値は数値で入力してください。");
+        return false;
+      }
+      if(document.getElementById("t_carrun_mater_in").value.length>0  && isNaN(document.getElementById("t_carrun_mater_in").value)==true){
+        alert("帰庫メーター値は数値で入力してください。");
+        return false;
+      }
+      //明細行（ステーション）
+      var rowCount = 0;
+      for (var i = 1; i <= eval(document.getElementById("m_route_point_cnt_no").value); i++){
+        if (document.getElementById("finish_timing_"+i)) {
+          rowCount += 1;
+          if (document.getElementById("finish_timing_"+i).value.length>0 && commonCkTime(document.getElementById("finish_timing_"+i).value)==false) {
+            alert(rowCount + "行目の収集時刻の形式が正しくありません。（hh:mm:ss）");
+            return false;
+          }
+          <% if @use_item_flg.to_s=="1" %>
+            for(var iCount = 1; iCount <= eval(document.getElementById("iCount").value); iCount++){
+              if(arrItemKbn[iCount-1]!=""){
+                if (document.getElementById("item_count_" + iCount + "_"+i).value.length>0 && isNaN(document.getElementById("item_count_" + iCount + "_" + i).value)==true) {
+                 alert(rowCount + "行目の回収数量は数値で入力してください。");
+                  return false;
+                }
+              }
+            }
+          <% end %>
+          if (document.getElementById("mikaishu_count_"+i).value.length>0 && isNaN(document.getElementById("mikaishu_count_"+i).value)==true) {
+            alert(rowCount + "行目の未回収数量は数値で入力してください。");
+            return false;
+          }
+          
+        }
+      }
+      //明細行（荷下先）
+      var rowCount_unload = 0;
+      for (var i = 10001; i <= eval(document.getElementById("cnt_no_unload").value)+10000; i++){
+        if (document.getElementById("unload_finish_timing_"+i)) {
+          rowCount_unload += 1;
+          if (document.getElementById("unload_finish_timing_"+i).value.length>0 && commonCkTime(document.getElementById("unload_finish_timing_"+i).value)==false) {
+            alert(rowCount_unload + "行目の荷下時刻の形式が正しくありません。（hh:mm:ss）");
+            return false;
+          }
+          for(var iCount_unload = 1; iCount_unload <= eval(document.getElementById("iCount_unload").value); iCount_unload++){
+            if (document.getElementById("unload_item_count_" + iCount_unload + "_"+i).value.length>0) {
+              if (isNaN(document.getElementById("unload_item_count_" + iCount_unload + "_" + i).value)==true) {
+                alert(rowCount_unload + "行目の荷下数量は数値で入力してください。");
+                return false;
+              }
+              if(document.getElementById("unload_finish_timing_"+i).value.length==0){
+                alert(rowCount_unload + "行目に荷下時刻が入っていません。");
+                return false;
+              }
+            }
+          }
+        }
+      }
+
+      if (confirm("更新処理をしますが、よろしいですか？")){
+        document.input_form.submit();
+      }else{
+        return false;
+      }
+    }
+    
+    //廃棄物追加画面表示
+    function fitem_add_display(){
+      
+      document.getElementById("item_kbn_new_").selectedIndex = 0;
+      document.getElementById("unit_kbn_new_").selectedIndex = 0;
+      $('#modal_item').dialog({
+        title: "ごみの種類追加　",
+        modal: true,
+        show : "fade",
+        hide : "fade",
+        width: 600,
+        height: 300,
+        open:function(event, ui){ 
+          $(".ui-dialog-titlebar-close").show();
+        }
+      });
+    }
+    
+    //廃棄物追加
+    function fitem_add(){
+      var itemCnt = 0;
+      
+      if(document.getElementById("item_kbn_new_").selectedIndex==0){
+        alert("ごみの種類を選択してください。");
+        return false;
+      }
+      for(var iCount = 1; iCount <= eval(document.getElementById("iCount").value); iCount++){
+        if(document.getElementById("item_kbn_new_").value==arrItemKbn[iCount-1]){
+          alert(document.getElementById("item_kbn_new_").options[document.getElementById("item_kbn_new_").selectedIndex].text + "は既に選択されています。");
+          return false;
+        }
+        if(arrItemKbn[iCount-1]!=""){
+          itemCnt += 1;
+        }
+      }
+      // テーブル取得
+      var table = document.getElementById("route_tag_sub");
+      var strHtml;
+      // 行数取得
+      var rows = table.rows.length;
+      var cnt_no = eval(document.getElementById("iCount").value) + 1;
+      document.getElementById("iCount").value = cnt_no;
+      // 各行末尾にセルを追加
+      for ( var i = 0; i < rows; i++) {
+        var cell = table.rows[i].insertCell(3+itemCnt);
+        
+        if(i==0){
+          cell.outerHTML = "<th>" + document.getElementById("item_kbn_new_").options[document.getElementById("item_kbn_new_").selectedIndex].text + "</th>";
+        }else{
+          strHtml = "<td><nobr><input type=text id=item_count_" + cnt_no + "_" + table.rows[i].id.replace("div_tree_no_","") + " name=item_count_" + cnt_no + "[] size=3 maxlength=10>" + document.getElementById("unit_kbn_new_").options[document.getElementById("unit_kbn_new_").selectedIndex].text + "</nobr></td>";
+          strHtml += "<input type=hidden id=item_kbn_" + cnt_no + "_" + table.rows[i].id.replace("div_tree_no_","") + " name=item_kbn_" + cnt_no + "[] value =" + document.getElementById("item_kbn_new_").value + ">";
+          strHtml += "<input type=hidden id=unit_kbn_" + cnt_no + "_" + table.rows[i].id.replace("div_tree_no_","") + " name=unit_kbn_" + cnt_no + "[] value =" + document.getElementById("unit_kbn_new_").value + ">";
+          cell.outerHTML = strHtml;
+        }
+      }
+      //配列に保管
+      arrItemKbn[arrItemKbn.length] = document.getElementById("item_kbn_new_").value;
+      arrItemName[arrItemName.length] = document.getElementById("item_kbn_new_").options[document.getElementById("item_kbn_new_").selectedIndex].text;
+      arrUnitKbn[arrUnitKbn.length] = document.getElementById("unit_kbn_new_").value;
+      arrUnitName[arrUnitName.length] = document.getElementById("unit_kbn_new_").options[document.getElementById("unit_kbn_new_").selectedIndex].text;
+      
+      //テーブルヘッダ固定用プラグイン再セット
+      FixedMidashi.remove();
+      FixedMidashi.create();
+      
+      //モーダル閉じる
+      $('#modal_item').dialog( "close" );
+    }
+    
+    //廃棄物削除画面表示
+    function fitem_dlt_display(){
+      //廃棄物再設定
+      var select = document.getElementById('item_kbn_dlt_');
+      while (select.options.length) {
+        select.remove(0);
+      }
+      var option = document.createElement('option');
+      option.setAttribute('value', 0);
+      option.innerHTML = '';
+      select.appendChild(option);
+      for(var iCount = 1; iCount <= eval(document.getElementById("iCount").value); iCount++){
+        if(arrItemKbn[iCount-1]!=""){
+          var option = document.createElement('option');
+          option.setAttribute('value', arrItemKbn[iCount-1]);
+          option.innerHTML = arrItemName[iCount-1];
+          select.appendChild(option);
+        }
+      }
+      document.getElementById("item_kbn_dlt_").selectedIndex = 0;
+      
+      $('#modal_item_dlt').dialog({
+        title: "ごみの種類削除　",
+        modal: true,
+        show : "fade",
+        hide : "fade",
+        width: 600,
+        height: 300,
+        open:function(event, ui){ 
+          $(".ui-dialog-titlebar-close").show();
+        }
+      });
+    }
+    
+    //廃棄物削除
+    function fitem_dlt(){
+      var itemCnt = 0;
+      var dltCnt = 0;
+      
+      if(document.getElementById("item_kbn_dlt_").selectedIndex==0){
+        alert("ごみの種類を選択してください。");
+        return false;
+      }
+      
+      //削除列取得
+      for(var iCount = 1; iCount <= eval(document.getElementById("iCount").value); iCount++){
+        itemCnt += 1;
+        if(arrItemKbn[iCount-1]!=""){
+          dltCnt += 1;
+          if(arrItemKbn[iCount-1]==document.getElementById("item_kbn_dlt_").value){
+            break;
+          }
+        }
+      }
+      
+      var rowCount = 0;
+      for (var i = 1; i <= eval(document.getElementById("m_route_point_cnt_no").value); i++){
+        if (document.getElementById("finish_timing_"+i)) {
+          rowCount += 1;
+          if (document.getElementById("item_count_" + itemCnt + "_"+i).value.length>0){
+            alert(document.getElementById("item_kbn_dlt_").options[document.getElementById("item_kbn_dlt_").selectedIndex].text + "は" + rowCount + "行目に値が入っている為、ごみ種類の列を削除することはできません。");
+            return false;
+          }
+        }
+      }
+      
+      // テーブル取得
+      var table = document.getElementById("route_tag_sub");
+      var rows = table.rows.length;
+      // 各行末尾にセルを削除
+      for ( var i = 0; i < rows; i++) {
+        var cell = table.rows[i].deleteCell(2+dltCnt);
+      }
+      
+      //ごみ種類の配列再セット
+      for(var iCount = 1; iCount <= eval(document.getElementById("iCount").value); iCount++){
+        if(arrItemKbn[iCount-1] == document.getElementById("item_kbn_dlt_").value){
+          arrItemKbn[iCount-1] = "";
+          arrItemName[iCount-1] = "";
+          arrUnitKbn[iCount-1] = "";
+          arrUnitName[iCount-1] = "";
+        }
+      }
+      
+      //テーブルヘッダ固定用プラグイン再セット
+      FixedMidashi.remove();
+      FixedMidashi.create();
+      
+      //モーダル閉じる
+      $('#modal_item_dlt').dialog( "close" );
+    }
+    
+  </script>
+<% end %>

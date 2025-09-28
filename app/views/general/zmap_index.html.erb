@@ -1,0 +1,141 @@
+<h1>ごみ回収状況</h1>
+
+<div id="layer"></div>
+
+<h3><font color=blue><%= Time.now.strftime("%Y年%m月%d日(#{@m_combo.class_namea}) %H:%M:%S") %></font>&nbsp;時点での回収状況です。</h3>
+<br>
+キーワード ： <input id="address" type="textbox" size=50 value="<%= @def_address %>">
+<input type="image" src="images/search_button.png" alt="検索" align="top" onclick="codeAddress2()">
+</div>
+<br><br>
+
+<form action="general" data-remote="true" id="marker_form" name="marker_form" method="post">
+  <%= hidden_field 'northeast_lat', '' %>
+  <%= hidden_field 'southwest_lat', '' %>
+  <%= hidden_field 'northeast_lng', '' %>
+  <%= hidden_field 'southwest_lng', '' %>
+</form>
+
+<body onload="loadMap(<%= @def_latitude %>,<%= @def_longitude %>);">
+  <div id="ZMap" style="border:1px solid #777777; width:98%; height:500px; position:absolute;"></div>
+</body>
+
+<% content_for :scripts do %>
+  <script src="//api.its-mo.com/cgi/loader.cgi?key=JSZ84d751105c4e&ver=2.0&api=zdcmap.js,search.js,control.js&alert=1" type="text/javascript"></script>
+  <script type="text/javascript" charset="utf-8">
+
+    var map2;
+    var latlon;
+    var widget;
+    var mrk = new Array();
+    var msg = new Array();
+    function loadMap(latitude, longitude) {
+alert(latitude + '_' + longitude);
+        map2 = new ZDC.Map(
+            document.getElementById('ZMap'),
+            {
+                latlon: new ZDC.LatLon(lat_world2japan(latitude,longitude),lng_world2japan(latitude,longitude)),
+                zoom: 12
+            }
+        );
+        /* コントロールを作成 */
+        widget_normal = new ZDC.Control(
+            {
+                pos: {
+                    top: 10,
+                    left: 10
+                },
+                type: ZDC.CTRL_TYPE_NORMAL
+            }
+        );
+        /* コントロールを表示 */
+        map2.addWidget(widget_normal);
+        
+        getMaker();
+        ZDC.addListener(map2, ZDC.MAP_DRAG_END, getMaker);
+        ZDC.addListener(map2, ZDC.MAP_CHG_ZOOM, getMaker);
+        //ZDC.addListener(mrk[0], ZDC.MARKER_CLICK, function(){msg[0].open();});
+    };
+    function getInfo(){
+      //すでに開かれている情報ウィンドウを閉じる
+      for(var i = 0; i < mrk.length; i++){
+        msg[i].close();
+      }
+      //情報ウィンドウ開く
+      msg[this.seq_id].open();
+    }
+
+    function getMaker() {
+      //マーカークリア
+      for(var i = 0; i < mrk.length; i++){
+        msg[i].close();
+        map2.removeWidget(mrk[i]);
+      }
+
+      //表示サイズが10以上の場合マーカー表示
+      if(map2.getZoom()>=10){
+        $('#layer').show();
+        //緯度経度取得
+        var box =  map2.getLatLonBox();
+        document.getElementById("northeast_lat_").value = lat_japan2world(box.getMax().lat, box.getMax().lon);
+        document.getElementById("southwest_lat_").value = lat_japan2world(box.getMin().lat, box.getMin().lon);
+        document.getElementById("northeast_lng_").value = lng_japan2world(box.getMax().lat, box.getMax().lon);
+        document.getElementById("southwest_lng_").value = lng_japan2world(box.getMin().lat, box.getMin().lon);
+        //再読み込み
+        $("#marker_form").submit(); 
+      }
+    };
+
+    //日本測地系→世界測地系
+    function lat_japan2world($la, $ln) {
+      $lat = $la - $la * 0.00010695 + $ln * 0.000017464 + 0.0046017;
+      return $lat;
+    }
+    function lng_japan2world($la, $ln) {
+      $lng = $ln - $la * 0.000046038 - $ln * 0.000083043 + 0.010040;
+      return $lng;
+    }
+
+    //世界測地系→日本測地系
+    function lat_world2japan($la, $ln) {
+      $lat = eval($la) + eval($la) * 0.00010696 - eval($ln) * 0.000017467 - 0.0046020;
+      return $lat;
+    }
+    function lng_world2japan($la, $ln) {
+      $lng = eval($ln) + eval($la) * 0.000046047 + eval($ln) * 0.000083049 - 0.010041;
+      return $lng;
+    }
+
+    //ジオコーディング（住所/郵便番号から緯度経度取得）
+    function codeAddress2() {
+      var address = document.getElementById("address").value;
+      var sonzai_flg = 0;
+
+        //住所検索
+        ZDC.Search.getAddrByWord({
+            word: address,
+            datum: 'WGS84',
+            limit: '1'
+        },function(status, res) {
+          if (status.code == '000' && res.item.length>0) {
+            sonzai_flg = 1;
+            loadMap(res.item[0].latlon.lat, res.item[0].latlon.lon);
+          }else{
+            //郵便番号検索
+            ZDC.Search.getAddrByZipcode({
+                zipcode: address,
+                datum: 'WGS84',
+                limit: '1'
+            },function(status, res) {
+              if (status.code == '000' && res.item.length>0) {
+                loadMap(res.item[0].latlon.lat, res.item[0].latlon.lon);
+                sonzai_flg = 1;
+              }else{
+                alert("キーワード検索に失敗しました。");
+              }
+            });
+          }
+        });
+    }
+  </script>
+<% end %>

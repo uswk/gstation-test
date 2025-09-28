@@ -1,0 +1,149 @@
+<h1>収集区内エリア登録画面</h1>
+
+<%= form_tag("m_route_areas", method: "post", id: "input_form", name: "input_form") do %>
+  <% @m_route = MRoute.where("route_code = ?", params[:routecode]).first %>
+  収集区名：<%= @m_route.route_name  %>
+  <br><br>
+  <% if current_user.authority!=9 %>
+    <input type=button value="エリア確定" onClick="farea_set()"; class='btn btn-primary'>&nbsp;
+    <input type=button value="１ライン戻す" onClick="farea_dlt()"; class='btn'>&nbsp;
+    <input type=button value="全て消す" onClick="farea_all_dlt()"; class='btn'>
+  <% end %>
+  <% if not @map_zenrin_cid.blank? %>
+    <input type=button value="ゼンリン住宅地図" class='btn' style="position:relative; top:10px; left:-10px; float: right;" onclick=fzenrin_common_map_display("<%= root_url(only_path: false) %>");>
+  <% end %>
+  <input type=hidden id=routecode name=routecode value="<%= params[:routecode] %>">
+  <input type=hidden id=tree_no name=tree_no value="<%= params[:upd_flg].blank? ? @tree_no : params[:tree_no] %>">
+  <input type=hidden id=upd_flg2 name=upd_flg2 value="<%= params[:upd_flg].blank? ? @upd_flg : params[:upd_flg] %>">
+  <input type=hidden id=latlng name=latlng>
+  <%= hidden_field_tag :hold_params, 1 %>
+  <%= hidden_field_tag :search_page, params[:search_page].to_s %>
+  <%= hidden_field_tag :search_routecode, params[:search_routecode].to_s %>
+  <%= hidden_field_tag :search_routename, params[:search_routename].to_s %>
+  <%= hidden_field_tag :search_itaku, params[:search_itaku].to_s %>
+  <%= hidden_field_tag :search_delete, params[:search_delete].to_s %>
+  <br><br>
+  <div class="map_container">
+    <div id="map_canvas" style="width:100%; height:500px"></div>
+  </div>
+  <br>
+  <%= link_to '戻る', m_route_areas_path(:routecode => params[:routecode], :hold_params=>1,:search_page=>params[:search_page].to_s,:search_routecode=>params[:search_routecode].to_s,:search_routename=>params[:search_routename].to_s,:search_itaku=>params[:search_itaku].to_s,:search_delete=>params[:search_delete].to_s), :class => 'btn' %>
+<% end %>
+<% content_for :scripts do %>
+  <script src="//maps.googleapis.com/maps/api/js?language=ja&key=<%= @map_key %>"></script>
+  <script src="//google-maps-utility-library-v3.googlecode.com/svn/tags/markerclustererplus/2.0.14/src/markerclusterer_packed.js" type="text/javascript"></script>
+  <script type="text/javascript">
+    // ラインを引く座標の配列の入れ物を作成
+    var points = new Array();
+    var poly;
+
+    var lat = <%= @def_lat %>;
+    var lng = <%= @def_lng %>;
+    var mapOptions = {
+      zoom: 15,
+      center: new google.maps.LatLng(lat, lng),
+      gestureHandling: "greedy",
+      mapTypeId: google.maps.MapTypeId.ROADMAP,
+      scaleControl: true
+    };
+    var map = new google.maps.Map(document.getElementById('map_canvas'), mapOptions);
+
+    // ラインオプションを作成
+    var polyLineOptions = {
+      path: points,
+      strokeWeight: 5,
+      strokeColor: "#0000ff",
+      editable:true,
+      strokeOpacity: "0.5"
+    };
+
+    google.maps.event.addDomListener(window, 'load', function()
+    {
+      //登録済のライン表示
+      if("<%= @latlng %>"){
+        var latlngData2 = (new Function("return " + "[" + decodeURIComponent("<%= @latlng %>")+ "]"))();
+        for (i = 0;i < latlngData2.length;i++) {  
+          var latlng2 = new google.maps.LatLng(latlngData2[i].lat, latlngData2[i].lng);
+          points.push(latlng2);
+          //マップ位置移動
+          if(i==0){
+            var pos = new google.maps.LatLng(latlngData2[i].lat,latlngData2[i].lng);
+            map.panTo(pos);
+          }
+        }
+        // ラインを作成
+        polyLineOptions.path = points;
+        poly = new google.maps.Polyline(polyLineOptions);
+        poly.setMap(map);
+      }
+      addListener_load();
+    });
+
+    function farea_set(){
+      if(window.confirm('エリアを確定しますがよろしいですか？')){
+        document.getElementById("latlng").value = points;
+        $("#input_form").submit();
+      }else{
+        return false;
+      }
+    }
+    function farea_dlt(){
+      // ラインを一つ戻す
+      poly.setMap(null);
+      points.pop();
+      polyLineOptions.path = points;
+      poly = new google.maps.Polyline(polyLineOptions);
+      poly.setMap(map);
+      addListener_load();
+    }
+    function farea_all_dlt(){
+      //ラインを全て消す
+      poly.setMap(null);
+      points = new Array();
+      polyLineOptions.path = points;
+      poly = new google.maps.Polyline(polyLineOptions);
+      poly.setMap(map);
+      addListener_load();
+    }
+    
+    //ライン再作成
+    function getPath() {
+      var path = poly.getPath();
+      var len = path.getLength();
+
+      poly.setMap(null);
+      points = new Array();
+      for (var i=0; i<len; i++) {
+        points.push(path.getAt(i));
+      }
+      polyLineOptions.path = points;
+      poly = new google.maps.Polyline(polyLineOptions);
+      poly.setMap(map);
+      addListener_load();
+    }
+
+      // マップクリックイベント
+      google.maps.event.addListener(map, 'click', function(e)
+      {
+        // クリックした場所を配列に追加
+        points.push(e.latLng);
+        // ラインを作成
+        if (points.length > 1) {
+          if(poly){
+            poly.setMap(null);
+          }
+          polyLineOptions.path = points;
+          poly = new google.maps.Polyline(polyLineOptions);
+          poly.setMap(map);
+          addListener_load();
+        }
+      });
+
+    function addListener_load(){
+      google.maps.event.addListener(poly, "dragend", getPath);
+      google.maps.event.addListener(poly.getPath(), "insert_at", getPath);
+      google.maps.event.addListener(poly.getPath(), "remove_at", getPath);
+      google.maps.event.addListener(poly.getPath(), "set_at", getPath);
+    }
+  </script>
+<% end %>

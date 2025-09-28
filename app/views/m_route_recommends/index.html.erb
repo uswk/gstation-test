@@ -1,0 +1,201 @@
+<h1>推奨ルート一覧画面</h1>
+<%= form_tag("m_route_recommends", method: "post", id: "input_form", name: "input_form") do %>
+  収集区名：<%= @m_route.route_name  %>
+  <% if not @map_zenrin_cid.blank? %>
+    <input type=button value="ゼンリン住宅地図" class='btn' style="position:relative; top:0px; left:-10px; float: right;" onclick=fzenrin_common_map_display("<%= root_url(only_path: false) %>");>
+  <% end %>
+  <br><br>
+  <table style="border-style: none;">
+    <tr>
+      <td valign=top width=30%>
+        <table style='table-layout: fixed;'>
+          <thead>
+            <tr>
+              <th width=20%>優先度</th>
+              <th width=35%>日報日付</th>
+              <% if current_user.authority!=9 %>
+                <th width=15%></th>
+                <th width=15%></th>
+                <th width=15%></th>
+              <% end %>
+            </tr>
+          </thead>
+        </table>
+        <div id="sortable-div">
+          <% @m_route_recommends.each do |m_route_recommend| %>
+            <table style='table-layout: fixed;'>
+              <tr onClick="mClickTR(this, '<%= m_route_recommend.id %>');" onmouseover="mouseOverTR(this);" onmouseout="mouseOutTR(this);">
+                <td align=center width=20%><%= m_route_recommend.priority %></td>
+                <td width=35%><%= m_route_recommend.out_timing.try(:strftime, "%Y/%m/%d") %></td>
+                <% if current_user.authority!=9 %>
+                  <td align=center width=15%><input type=button value="編集" onClick="f_route_recommend_submit(2,<%= m_route_recommend.id %>);" class='btn btn-mini'></td>
+                  <td align=center width=15%><%= link_to '補正', m_route_roads_path(:recommend_id => m_route_recommend.id, :pattern_count => 98, :hold_params=>1,:search_page=>params[:search_page].to_s,:search_routecode=>params[:search_routecode].to_s,:search_routename=>params[:search_routename].to_s,:search_itaku=>params[:search_itaku].to_s,:search_delete=>params[:search_delete].to_s), :class => 'btn btn-mini' %></td>
+                  <% @url_path = "?routecode=" + ERB::Util.url_encode(params[:routecode].to_s) + "&hold_params=1&search_page=" + params[:search_page].to_s + "search_routecode=" + ERB::Util.url_encode(params[:search_routecode].to_s) + "&search_routename=" + ERB::Util.url_encode(params[:search_routename].to_s) + "&search_itaku=" + ERB::Util.url_encode(params[:search_itaku].to_s) + "&search_delete=" + params[:search_delete].to_s %>
+                  <td align=center width=15%><%= link_to '削除', 'm_route_recommends/'+m_route_recommend.id.to_s+@url_path.to_s, method: :delete, data: { confirm: '削除しますがよろしいですか?' }, :style=>"color:white;", :class => 'btn btn-mini btn-danger' %></td>
+                <% end %>
+                <input type=hidden id=latlng_<%= m_route_recommend.id %> name=latlng_<%= m_route_recommend.id %> value="<%= m_route_recommend.latlng %>">
+                <%= hidden_field 'recommend_id', '', :value => m_route_recommend.id.to_s %>
+              </tr>
+            </table>
+          <% end %>
+        </div>
+        <br>
+        <% if current_user.authority!=9 %>
+          <input type=button value="並び順更新" onClick="f_route_recommend_submit(3,0);" class='btn btn-primary'>&nbsp;&nbsp;
+        <% end %>
+        <%= link_to '戻る', m_routes_path(:hold_params=>1,:page=>params[:search_page].to_s,:search_routecode=>params[:search_routecode].to_s,:search_routename=>params[:search_routename].to_s,:search_itaku=>params[:search_itaku].to_s,:search_delete=>params[:search_delete].to_s), :class => 'btn' %>
+        <input type=hidden id=cnt_no name=cnt_no value="<%= @m_route_recommends.length %>">
+        <input type=hidden id=routecode name=routecode value="<%= params[:routecode] %>">
+        <input type=hidden id=routename name=routename value="<%= @m_route.route_name.to_s %>">
+        <input type=hidden id=upd_flg name=upd_flg>
+        <input type=hidden id=route_recommend_id name=route_recommend_id>
+        <input type=hidden id=latlng name=latlng>
+        <%= hidden_field_tag :hold_params, 1 %>
+        <%= hidden_field_tag :search_page, params[:search_page].to_s %>
+        <%= hidden_field_tag :search_routecode, params[:search_routecode].to_s %>
+        <%= hidden_field_tag :search_routename, params[:search_routename].to_s %>
+        <%= hidden_field_tag :search_itaku, params[:search_itaku].to_s %>
+        <%= hidden_field_tag :search_delete, params[:search_delete].to_s %>
+      </td>
+      <td valign=top width=70%>
+        <div class="map_container">
+          <div id="map_canvas" style="width:100%; height:500px"></div>
+        </div>
+      </td>
+    </tr>
+  </table>
+  <span id=latlng_text></span>
+<% end %>
+
+<% content_for :scripts do %>
+  <script src="//maps.googleapis.com/maps/api/js?language=ja&key=<%= @map_key %>"></script>
+  <script src="//google-maps-utility-library-v3.googlecode.com/svn/tags/markerclustererplus/2.0.14/src/markerclusterer_packed.js" type="text/javascript"></script>
+  <script type="text/javascript" charset="utf-8">
+    var latlngData2;
+    var arrCoords2;
+    var marker= new Array();
+    var infowindow = new Array();
+    var myLatlng;
+    var seq_id = 0;
+    var icon = "images/marker_icon.png";
+
+    // ラインを引く座標の配列の入れ物を作成
+    var points = new Array();
+    var poly;
+    // ラインオプションを作成
+    var polyLineOptions = {
+      path: null,
+      strokeWeight: 3,
+      strokeColor: "#ff0000",
+      strokeOpacity: "1"
+    };
+
+    var lat = <%= @def_lat %>;
+    var lng = <%= @def_lng %>;
+    var mapOptions = {
+      zoom: 15,
+      center: new google.maps.LatLng(lat, lng),
+      gestureHandling: "greedy",
+      mapTypeId: google.maps.MapTypeId.ROADMAP,
+      scaleControl: true
+    };
+    var map = new google.maps.Map(document.getElementById('map_canvas'), mapOptions);
+    
+<%
+  if not @m_route_points.nil?
+    @m_route_points.each do |m_route_point|
+%>
+      myLatlng = new google.maps.LatLng(<%= m_route_point.latitude.to_s %>,<%= m_route_point.longitude.to_s %>);
+      contentString = "<div style='width:400px; height:50px;'><h3>" + "<%= m_route_point.cust_code.to_s %>" + ":" + "<%= m_route_point.cust_name.to_s %>" + "</h3>";
+      contentString = contentString + "</div>";
+      
+      infowindow[seq_id] = new google.maps.InfoWindow({
+        content: contentString,
+        disableAutoPan: true
+      });
+      marker[seq_id] = new google.maps.Marker({
+        position: myLatlng,
+        icon: icon,
+        map: map,
+        title: seq_id+''
+      });
+      google.maps.event.addListener(marker[seq_id], 'click', function() {
+        //情報ウィンドウ閉じる
+        for(var i = 0; i < seq_id; i++){
+          infowindow[i].close();
+        }
+        infowindow[this.getTitle()].open(map,marker[this.getTitle()]);
+      });
+      seq_id = seq_id + 1;
+<%
+    end
+  end
+%>
+    
+    //一覧選択時のイベント
+    var gActiveobj;
+    function mouseOverTR( obj ) {
+      for (var i=0;i<obj.cells.length;i++ ) {
+        obj.cells[i].style.backgroundColor = "#FFFF55";
+      }
+    }
+    function mouseOutTR( obj ) {
+      if (obj!=gActiveobj){
+        for (var i=0;i<obj.cells.length;i++ ) {
+          obj.cells[i].style.backgroundColor = "";
+        }
+      }
+    }
+    function mClickTR(obj, recommend_id) {
+      
+      if (gActiveobj){
+        for(var i=0;i<gActiveobj.cells.length;i++ ){
+          gActiveobj.cells[i].style.backgroundColor = "";
+        }
+      }
+      gActiveobj = obj;
+      for(var i=0;i<obj.cells.length;i++){
+        obj.cells[i].style.backgroundColor = "#FFFF55";
+      }
+
+      //ポリライン再表示
+      //既に存在していたら削除
+      if(poly){
+        poly.setMap(null);
+      }
+      latlngData2 = (new Function("return " + "[" + document.getElementById("latlng_"+recommend_id).value + "]"))();
+      arrCoords2 = new Array();  
+      for (i = 0;i < latlngData2.length;i++) {  
+        // 座標地をlatlng値に変換  
+        var latlng2 = new google.maps.LatLng(latlngData2[i].lat, latlngData2[i].lng);
+        // latlng値を配列に退避  
+        arrCoords2.push(latlng2);
+        //１件目の緯度経度へマップ位置移動
+        if(i==0){
+          var pos = new google.maps.LatLng(latlngData2[i].lat,latlngData2[i].lng);
+          map.panTo(pos);
+        }
+      }
+      // ラインを作成
+      polyLineOptions.path = arrCoords2;
+      poly = new google.maps.Polyline(polyLineOptions);
+      poly.setMap(map);
+    }
+    
+    function f_route_recommend_submit(upd_flg, recommend_id){
+      if(upd_flg==3){
+        if(!window.confirm('並び順を更新しますがよろしいですか？')){
+          return false;
+        }
+      }else{
+        if(document.getElementById("latlng_"+recommend_id).value.length>100000){
+          alert("軌跡情報が大きすぎるため編集することができません。");
+          return false;
+        }
+      }
+      document.getElementById("upd_flg").value=upd_flg;
+      document.getElementById("route_recommend_id").value=recommend_id;
+      $("#input_form").submit();
+    }
+  </script>
+<% end %>

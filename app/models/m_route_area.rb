@@ -1,0 +1,3 @@
+class MRouteArea < ActiveRecord::Base
+  #attr_accessible :route_code, :tree_no, :latlng
+end

@@ -1,0 +1,90 @@
+<style>
+  .label-fixed {
+    width: 80px;
+    display: inline-block;
+    text-align: right;
+    margin-right: 8px;
+  }
+  .field-group {
+    display: flex;
+    align-items: center;
+  }
+</style>
+
+<div class="container mt-4">
+  <h2 class="mb-3">出庫情報検索</h2>
+
+  <%= form_with url: home_path, method: :get, local: true do %>
+    <div class="row g-3">
+
+      <!-- 収集区 -->
+      <div class="col-lg-3 col-md-4">
+        <div class="field-group">
+          <label class="label-fixed">収集区</label>
+          <select name="area" class="form-select form-select-sm w-auto">
+            <%= raw("<option>dummy</option>") %>
+          </select>
+        </div>
+      </div>
+
+      <!-- 出庫日（From ～ To） -->
+      <div class="col-lg-6 col-md-8">
+        <div class="field-group">
+          <label class="label-fixed">出庫日</label>
+          <%= date_field_tag :from_date, Date.today, class: "form-control form-control-sm w-auto" %>
+          <span class="mx-2">～</span>
+          <%= date_field_tag :to_date, Date.today, class: "form-control form-control-sm w-auto" %>
+        </div>
+      </div>
+
+      <!-- 委託会社 -->
+      <div class="col-lg-3 col-md-4">
+        <div class="field-group">
+          <label class="label-fixed">委託会社</label>
+          <select name="contractor" class="form-select form-select-sm w-auto">
+            <%= raw("<option>dummy</option>") %>
+          </select>
+        </div>
+      </div>
+
+      <!-- 車両番号 -->
+      <div class="col-lg-3 col-md-4">
+        <div class="field-group">
+          <label class="label-fixed">車両番号</label>
+          <%= text_field_tag :vehicle_number, params[:vehicle_number], class: "form-control form-control-sm", style: "min-width: 100px;" %>
+        </div>
+      </div>
+
+      <!-- ドライバー -->
+      <div class="col-lg-3 col-md-6">
+        <div class="field-group">
+          <label class="label-fixed">ドライバー</label>
+          <select name="driver" class="form-select form-select-sm w-auto">
+            <%= raw("<option>dummy</option>") %>
+          </select>
+        </div>
+      </div>
+
+      <!-- 並び順 -->
+      <div class="col-lg-3 col-md-4">
+        <div class="field-group">
+          <label class="label-fixed">並び順</label>
+          <div class="form-check form-check-inline">
+            <%= radio_button_tag :order, 'desc', params[:order] != 'asc', class: "form-check-input", id: "order_desc" %>
+            <%= label_tag :order_desc, '降順', class: "form-check-label" %>
+          </div>
+          <div class="form-check form-check-inline">
+            <%= radio_button_tag :order, 'asc', params[:order] == 'asc', class: "form-check-input", id: "order_asc" %>
+            <%= label_tag :order_asc, '昇順', class: "form-check-label" %>
+          </div>
+        </div>
+      </div>
+
+      <!-- 検索ボタン -->
+      <div class="col-12 text-center mt-2">
+        <%= submit_tag "検索", class: "btn btn-primary px-4" %>
+      </div>
+
+    </div>
+  <% end %>
+</div>

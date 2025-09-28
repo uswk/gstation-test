@@ -1,0 +1,596 @@
+<% content_for :js do %>
+  <%= javascript_include_tag "fixed_midashi" %>
+<% end %>
+
+<h1>運転日報（サマリー）詳細画面</h1>
+
+<table>
+  <thead>
+    <tr>
+      <th>収集区</th>
+      <td><%= @t_carrun.route_name %></td>
+      <th>給油量</th>
+      <td align=right><%= @t_carrun.quantity %>&nbsp;ℓ</td>
+    </tr>
+    <tr id=tr_0 onClick="mClickTR2(this);" onmouseover="mouseOverTR2(this);" onmouseout="mouseOutTR2(this);">
+      <th>車両</th>
+      <td><%= @t_carrun.car_reg_code %></td>
+      <th>走行距離(GPS)</th>
+      <td align=right><%= @t_carrun.run_distance %>&nbsp;km</td>
+    </tr>
+    <tr>
+      <th>運転手</th>
+      <td><%= @t_carrun.driver_name %></td>
+      <th>走行距離(手入力)</th>
+      <td align=right><%= @t_carrun.mater_in.to_i - @t_carrun.mater_out.to_i %>&nbsp;km</td>
+    </tr>
+    <% if not @t_carrun.sub_driver_code1.blank? %>
+      <tr>
+        <th>副乗務員1</th>
+        <td colspan=3><%= @t_carrun.sub_driver_name1 %></td>
+      </tr>
+    <% end %>
+    <% if not @t_carrun.sub_driver_code2.blank? %>
+      <tr>
+        <th>副乗務員2</th>
+        <td colspan=3><%= @t_carrun.sub_driver_name2 %></td>
+      </tr>
+    <% end %>
+    <tr>
+      <th>出庫日時</th>
+      <td><%= @t_carrun.out_timing.try(:strftime, "%Y/%m/%d %H:%M:%S") %></td>
+      <th>出庫メーター値</th>
+      <td align=right><%= @t_carrun.mater_out %>&nbsp;km</td>
+    </tr>
+    <tr>
+      <th>帰庫日時</th>
+      <td><%= @t_carrun.in_timing.try(:strftime, "%Y/%m/%d %H:%M:%S") %></td>
+      <th>帰庫メーター値</th>
+      <td align=right><%= @t_carrun.mater_in %>&nbsp;km</td>
+    </tr>
+  </thead>
+</table>
+<br>
+<%= link_to '再表示', t_carrun_summary_path(:id => @t_carrun.id, :out_date=>@now_date, :car_code=>@car_code, :route_code=>@route_code, :outdate=>params[:outdate], :outdate_from=>params[:outdate_from], :outdate_to=>params[:outdate_to], :routecode=>params[:routecode], :custcode=>params[:custcode], :custname=>params[:custname], :itakucode=>params[:itakucode], :search_page=>params[:search_page]), :class => 'btn', :style=>'text-decoration:none;' %>
+<br><br>
+<div id='overflow' style='overflow: scroll; height:30vh'>
+<table _fixedhead="rows:1; cols:3">
+  <thead>
+    <tr>
+      <th><nobr>SEQ</nobr></th>
+      <th><nobr>ｽﾃｰｼｮﾝID</nobr></th>
+      <th><nobr>ステーション名</nobr></th>
+      <th><nobr>住所</nobr></th>
+      <th><nobr>管理者名</nobr></th>
+      <th><nobr>電話番号</nobr></th>
+      <th><nobr>Ｅメール</nobr></th>
+      <th><nobr>収集時刻</nobr></th>
+      <% if @iCount>0 %>
+        <% @t_collect_details.each do |t_collect_detail| %>
+          <th><nobr><%= t_collect_detail.item_name.to_s %></nobr></th>
+        <% end %>
+      <% end %>
+      <th><nobr>未回収数量</nobr></th>
+      <th><nobr>未回収理由</nobr></th>
+    </tr>
+  </thead>
+  
+  <tbody>
+    <% @t_collect_lists.each do |m_route_point| %>
+      <tr style="background-color:<%= m_route_point.bgcolor %>;" id=tr_<%= m_route_point.spot_no %> onClick="mClickTR(this, '<%= m_route_point.bgcolor %>')" onmouseover="mouseOverTR(this, '<%= m_route_point.bgcolor %>');" onmouseout="mouseOutTR(this, '<%= m_route_point.bgcolor %>');">
+        <td align=right><nobr><%= m_route_point.tree_no %></nobr></td>
+        <td><nobr><%= m_route_point.cust_code %></nobr></td>
+        <td><nobr><%= m_route_point.cust_name %></nobr></td>
+        <td><nobr><%= (m_route_point.addr_1.to_s + ' ' + m_route_point.addr_2.to_s).strip %></nobr></td>
+        <td><nobr><%= m_route_point.admin_name %></nobr></td>
+        <td><nobr><%= m_route_point.tel_no %></nobr></td>
+        <td><nobr><%= m_route_point.email %></nobr></td>
+        <td><nobr><%= m_route_point.finish_timing.try(:strftime, "%H:%M:%S") %></nobr></td>
+        <% if @iCount>0 %>
+          <% for num in 1..@iCount %>
+            <td><nobr><%= m_route_point["item_count_"+num.to_s].blank? ? "" : m_route_point["item_count_"+num.to_s].to_f%1==0 ? m_route_point["item_count_"+num.to_s].to_i : m_route_point["item_count_"+num.to_s] %><%= m_route_point["item_count_"+num.to_s].blank? ? "" : " " + m_route_point["unit_name_" + num.to_s] %></nobr></td>
+          <% end %>
+        <% end %>
+        <td><nobr><%= m_route_point.mikaishu_count.blank? ? "" : m_route_point.mikaishu_count.to_f%1==0 ? m_route_point.mikaishu_count.to_i : m_route_point.mikaishu_count %></nobr></td>
+        <td><nobr><%= m_route_point.mikaishu_name %></nobr></td>
+        <%= hidden_field 'bgcolor', m_route_point.spot_no, :value=>m_route_point.bgcolor %>
+      </tr>
+    <% end %>
+  </tbody>
+</table>
+</div>
+<br>
+
+<% if current_user.authority!=9 %>
+  <input type=button value="推奨ルート設定" onClick="froute_recommend_add();" class='btn btn-primary'>&nbsp;&nbsp;
+<% end %>
+<% if current_user.authority==1 and not @t_carrun.in_timing.blank? %>
+  <input type=button value="収集区内ステーション並び順変更" onClick="froute_point_submit();" class='btn btn-primary'>&nbsp;&nbsp;
+<% end %>
+<% @url_path = t_carrun_summarys_path.to_s + "?search[date_from]=" + ERB::Util.url_encode(params[:outdate_from].to_s) + "&search[date_to]=" + ERB::Util.url_encode(params[:outdate_to].to_s) + "&search[route]=" + ERB::Util.url_encode(params[:routecode].to_s) + "&search[itaku]=" + ERB::Util.url_encode(params[:itakucode].to_s) + "&page=" + params[:search_page].to_s %>
+<%= link_to '戻る', @url_path, :class => 'btn', :style=>'text-decoration:none;' %>
+<% if not @map_zenrin_cid.blank? %>
+  <input type=button value="ゼンリン住宅地図" class='btn' style="position:relative; top:10px; left:-10px; float: right;" onclick=fzenrin_common_map_display("<%= root_url(only_path: false) %>");>
+<% end %>
+<br><br>
+<div id="modal" style="display:none;">
+  <%= form_with(url: t_carrun_summarys_path, :method => "post", :id=>"input_form", html: {:name=>"input_form"}) do |f| %>
+    <br>
+    <table>
+      <thead>
+        <tr>
+          <th>収集区</th>
+          <td><%= select 'route_code_select', 'query', @route_codes, { :include_blank => false, :selected => @t_carrun.route_code.to_s} %></td>
+        </tr>
+      </thead>
+    </table>
+    <br>
+    <div class="actions">
+      &nbsp;&nbsp;<input type=button value="推奨ルート登録" onClick="froute_recommend_submit();" class='btn btn-primary'>
+    </div>
+    <%= hidden_field_tag :carrun_id, @carrun_id %>
+    <%= hidden_field_tag :out_timing_str, @now_date %>
+    <%= hidden_field_tag :out_timing_end, @tom_date %>
+    <%= hidden_field_tag :car_code, @t_carrun.car_code %>
+    <%= hidden_field_tag :route_recommend_flg, 1 %>
+    <%= hidden_field_tag :hold_params, 1 %>
+    <%= hidden_field_tag :search_page, params[:search_page] %>
+    <%= hidden_field_tag :search_outdate_from, params[:outdate_from] %>
+    <%= hidden_field_tag :search_outdate_to, params[:outdate_to] %>
+    <%= hidden_field_tag :search_routecode, params[:routecode] %>
+    <%= hidden_field_tag :search_itakucode, params[:itakucode] %>
+    <%= f.submit %>
+  <% end %>
+</div>
+<div class="map_container">
+  <div id="map_canvas" style="width:100%; height:500px"></div>
+</div>
+<div id="modal_spot" style="display:none;">
+  <%= form_tag(t_carrun_summarys_path, :method => "post", :name=>"modal_form", :id=>"modal_form", :remote=>true) do %>
+    <br>
+    <table>
+      <tr>
+        <td colspan=2>ステーション名</td>
+        <td colspan=3>
+          <%= text_field 'cust_name_new', '', :size=>30, :maxlength=>50 %>
+          <%= submit_tag "番号取得", :onclick=>"return getStationNo();", :class => 'btn' %>
+        </td>
+      </tr>
+      <tr>
+        <td colspan=2>住所<br>(ｱﾊﾟｰﾄ・ﾏﾝｼｮﾝ名)</td>
+        <td colspan=3>
+          <%= text_field 'address_new', '', :size=>60, :maxlength=>100 %><p></p>
+          <%= text_field 'addr_2_new', '', :size=>60, :maxlength=>100 %>
+        </td>
+      </tr>
+      <tr>
+        <td rowspan=3>管理者</td>
+        <td>コード</td>
+        <td colspan=3>
+          <%= text_field 'admin_code_new', '', :size=>10, :onchange=>'getAdminInfo();' %>
+          <%= link_to "検索", admins_path.to_s + "?search_mode=1", :onclick=>"window.open(this.href,'hoge', 'height=600, width=800, resizable=yes, scrollbars=yes'); return false;", :class => 'btn btn-mini' %>
+        </td>
+      </tr>
+      <tr>
+        <td>名称</td>
+        <td colspan=3><div id="div_admin_name"></div></td>
+      </tr>
+      <tr>
+        <td>種別</td>
+        <td colspan=3><div id="div_admin_type"></div></td>
+      </tr>
+      <tr>
+        <td colspan=2>使用内容</td>
+        <td colspan=3><%= select 'use_content_new', '', @use_contents, { :include_blank => true} %></td>
+      </tr>
+      <tr>
+        <td colspan=2>利用世帯数</td>
+        <td><%= text_field 'setai_count_new', '', :size=>5, :maxlength=>4 %></td>
+        <td>利用人数</td>
+        <td><%= text_field 'use_count_new', '', :size=>5, :maxlength=>4 %></td>
+      </tr>
+      <tr>
+        <td colspan=2>備考</td>
+        <td colspan=3><%= text_area 'memo_new', '', :rows=>2, :maxlength=>100 %></td>
+      </tr>
+      <tr>
+        <td colspan=2>申請日</td>
+        <td><%= text_field 'shinsei_date_new', '', :size=>12, :maxlength=>10, :class => 'datepicker_sub' %></td>
+        <td>収集開始日</td>
+        <td><%= text_field 'start_date_new', '', :size=>12, :maxlength=>10, :class => 'datepicker_sub' %></td>
+      </tr>
+      <tr>
+        <td colspan=2>収集区に含める</td>
+        <td colspan=3><%= check_box 'route_new', '', {:checked => true}, true, false %></td>
+      </tr>
+      <%= hidden_field 'latitude_new', '' %>
+      <%= hidden_field 'longitude_new', '' %>
+      <%= hidden_field 'carrun_id_new', '' %>
+      <%= hidden_field 'out_timing_new', '' %>
+      <%= hidden_field 'car_code_new', '' %>
+      <%= hidden_field 'spot_no_new', '' %>
+      <%= hidden_field 'finish_timing_new', '' %>
+      <%= hidden_field 'tree_no_new', '' %>
+      <%= hidden_field 'route_code_new', '' %>
+      <%= hidden_field 'chg_flg_new', '', :value => 1 %>
+    </table>
+    <br>
+    <center><%= submit_tag "登録", :onclick=>"return getValidityChk();", :class => 'btn btn-primary' %></center>
+  <% end %>
+</div>
+<%= content_for :scripts do %>
+  <script src="//maps.googleapis.com/maps/api/js?v=3.23&language=ja&key=<%= @map_key %>"></script>
+  <script src="//google-maps-utility-library-v3.googlecode.com/svn/tags/markerclustererplus/2.0.14/src/markerclusterer_packed.js" type="text/javascript"></script>
+  <script src="https://unpkg.com/@googlemaps/markerwithlabel/dist/index.min.js"></script>
+  <script type="text/javascript" charset="utf-8">
+    var gActiveobj;
+    var gActivecolor;
+    var carMarker;
+    var statMarker = new Array();
+    var lineMarker = new Array();
+    var treeMarker = new Array();
+    var infowindow = new Array();
+    var infowindow_car;
+    var myLatlng;
+    var contentString;
+    var seq_id = 0;
+    var tree_id = 0;
+    var seq_point = 20;
+    var icon;
+    var spot_no_new;
+    var latitude_new;
+    var longitude_new;
+    var finish_timing_new;
+    var out_timing_new;
+    
+    //テーブルヘッダ固定用プラグイン
+    FixedMidashi.create();
+
+    myLatlng = new google.maps.LatLng("<%= @def_lat %>","<%= @def_lng %>");
+    var mapOptions = {
+      auto_zoom: true,
+      zoom: 18,
+      auto_adjust: false,
+      center: myLatlng,
+      gestureHandling: "greedy",
+      mapTypeId: google.maps.MapTypeId.ROADMAP
+    }
+    var map = new google.maps.Map(document.getElementById("map_canvas"), mapOptions);
+
+    // ラインを引く座標の配列の入れ物を作成
+    var points = new Array();
+    var poly;
+    // ラインオプションを作成
+    var polyLineOptions = {
+      path: null,
+      strokeWeight: 3,
+      strokeColor: "#ff0000",
+      strokeOpacity: "1"
+    };
+
+    google.maps.event.addDomListener(window, 'load', function()
+    {
+      //登録済のライン表示
+        var latlngData2 = (new Function("return " + "[" + decodeURIComponent("<%= @track_latlng %>")+ "]"))();
+        //ラインマーカー表示
+        icon = "../images/marker_icon_point.png";
+        for (i = 0;i < latlngData2.length;i++) {  
+          var latlng2 = new google.maps.LatLng(latlngData2[i].lat, latlngData2[i].lng);
+          points.push(latlng2);
+          
+          //走行時間は２０件に一回表示
+          if(seq_point>=20){
+            var track_time = (""+latlngData2[i].time).substr(0,4)+"/"+(""+latlngData2[i].time).substr(4,2)+"/"+(""+latlngData2[i].time).substr(6,2)+" "+(""+latlngData2[i].time).substr(8,2)+":"+(""+latlngData2[i].time).substr(10,2)+":"+(""+latlngData2[i].time).substr(12,2);
+            lineMarker[seq_id] = new google.maps.Marker({
+              position: latlng2,
+              icon: icon,
+              map: map,
+              title: track_time
+            });
+            google.maps.event.addListener(lineMarker[seq_id], 'click', function() {
+              alert("走行日時：" + this.getTitle());
+            });
+            seq_point = 1;
+          }else{
+            seq_point = seq_point + 1;
+          }
+          seq_id = seq_id + 1;
+        }
+        // ラインを作成
+        polyLineOptions.path = points;
+        poly = new google.maps.Polyline(polyLineOptions);
+        poly.setMap(map);
+
+        //ラインマーカー表示
+        icon = "../images/marker_icon_point.png";
+<%
+
+        if not @t_carrun_lists.blank?
+%>
+            myLatlng = new google.maps.LatLng("<%= @t_carrun_lists[0].latitude.to_s %>","<%= @t_carrun_lists[0].longitude.to_s %>");
+            icon = "../images/car.png";
+            contentString = "<div style='width:320px; height:80px;'><h3>車両：<%= @t_carrun_lists[0].car_reg_code.to_s %><br>時間：<%= @t_carrun_lists[0].work_timing.try(:strftime, "%Y/%m/%d %H:%M:%S") %><br>場所：<%= @t_carrun_lists[0].address.to_s %></h3></div>";
+            infowindow_car = new google.maps.InfoWindow({
+              content: contentString,
+              disableAutoPan: true
+            });
+            carMarker = new google.maps.Marker({
+              position: myLatlng,
+              icon: icon,
+              title: "車両",
+              map: map,
+              zIndex: 1
+            });
+            google.maps.event.addListener(carMarker, 'click', function() {
+              infowindow_car.open(map,carMarker);
+            });
+<%
+        end
+        if not @t_collect_lists.blank?
+          @t_collect_lists.each do |t_collect_list|
+%>
+            var rank = eval("<%= t_collect_list.rank %>")-1;
+            var id = "<%= t_collect_list.custom_id %>";
+            var cust_kbn = "<%= t_collect_list.cust_kbn %>";
+            var cust_code = "<%= t_collect_list.cust_code %>";
+            
+            contentString = "<div style='width:450px; height:200px;'><h3><%= t_collect_list.cust_name.to_s %></h3>回収時間：<%= t_collect_list.finish_timing.try(:strftime, "%Y/%m/%d %H:%M:%S") %><br>未回収数：<%= t_collect_list.mikaishu_count.to_s %><br>未回収理由：<%= t_collect_list.mikaishu_name %><br><br>";
+            <% if current_user.authority!=9 and t_collect_list.cust_code.to_s=="*" and not t_collect_list.in_timing.blank? %>
+              spot_no_new = "<%= t_collect_list.spot_no.to_s %>";
+              latitude_new = "<%= t_collect_list.latitude.to_s %>";
+              longitude_new = "<%= t_collect_list.longitude.to_s %>";
+              finish_timing_new = "<%= t_collect_list.finish_timing.try(:strftime, "%Y/%m/%d %H:%M:%S") %>";
+              out_timing_new = "<%= t_collect_list.out_timing.try(:strftime, "%Y/%m/%d %H:%M:%S") %>";
+              contentString += "&nbsp;&nbsp;<input type=button value='スポット回収分のステーション登録' onClick=fspot_station_set(" + spot_no_new + "," + latitude_new + "," + longitude_new + ",'" + encodeURIComponent(finish_timing_new) + "','" + encodeURIComponent(out_timing_new) + "'); class='btn btn-primary'>";
+            <% end %>
+            
+            if(cust_kbn=="1" && cust_code!="*"){
+              contentString = contentString + "&nbsp;&nbsp;&nbsp;<input type=button value='メモ' onclick=fcustom_memo_common('" + cust_code + "','<%= root_url(only_path: false) %>'); class='btn'>";
+              contentString = contentString + "&nbsp;&nbsp;&nbsp;<input type=button value='収集履歴' onclick=fcustom_carrun_common('" + cust_kbn + "','" + cust_code + "','<%= root_url(only_path: false) %>'); class='btn'>";
+              contentString = contentString + "&nbsp;&nbsp;&nbsp;<input type=button value='詳細' onclick=fcustom_detail_common('" + id + "','<%= root_url(only_path: false) %>',''); class='btn'>";
+              <% if current_user.authority!=9 %>
+                contentString = contentString + "&nbsp;&nbsp;<input type=button value='編集' onclick=fcustom_detail_common('" + id + "','<%= root_url(only_path: false) %>','/edit'); class='btn'>";
+              <% end %>
+            }else if(cust_kbn=="3"){
+              contentString = contentString + "&nbsp;&nbsp;&nbsp;<input type=button value='荷降履歴' onclick=fcustom_carrun_common('" + cust_kbn + "','" + cust_code + "','<%= root_url(only_path: false) %>'); class='btn'>";
+              contentString = contentString + "&nbsp;&nbsp;&nbsp;<input type=button value='詳細' onclick=funload_detail_common('" + id + "','<%= root_url(only_path: false) %>',''); class='btn'>";
+              <% if current_user.authority!=9 %>
+                contentString = contentString + "&nbsp;&nbsp;<input type=button value='編集' onclick=fcustom_detail_common('" + id + "','<%= root_url(only_path: false) %>','/edit'); class='btn'>";
+              <% end %>
+            }
+            contentString += "<br><br>";
+            contentString += "<%= t_collect_list.memo.html_safe %></div>";
+            //ステーションマーカー画像
+            if("<%= t_collect_list.cust_kbn.to_s %>" == "3"){
+              icon = "../images/marker_icon_unload.png";
+            }else if("<%= t_collect_list.finish_timing.to_s %>" == ""){
+              if("<%= t_collect_list.another_collect.to_s %>"=="1"){
+                icon = "../images/marker_icon4.png";
+              }else{
+                icon = "../images/marker_icon.png";
+              }
+            }else if("<%= t_collect_list.mikaishu_code.to_s %>" == "" && "<%= t_collect_list.mikaishu_count.to_s %>" == ""){
+              icon = "../images/marker_icon2.png";
+            }else{
+              icon = "../images/marker_icon3.png";
+            }
+            
+            myLatlng = new google.maps.LatLng("<%= t_collect_list.latitude.to_s %>","<%= t_collect_list.longitude.to_s %>");
+            
+            infowindow[tree_id] = new google.maps.InfoWindow({
+              content: contentString,
+              disableAutoPan: true
+            });
+            statMarker[rank] = new google.maps.Marker({
+              position: myLatlng,
+              icon: icon,
+              title: ""+rank,
+              map: map,
+              zIndex: 1
+            });
+            treeMarker[tree_id] = new markerWithLabel.MarkerWithLabel({
+              position: myLatlng,
+              map: map,
+              icon: {
+                path: google.maps.SymbolPath.BACKWARD_OPEN_ARROW,
+                scale: 0,
+              },
+              labelContent: " <%= t_collect_list.spot_no.to_s %>",
+              labelAnchor: new google.maps.Point(-3, -14),
+              labelClass: "markerwithlabel-labels",
+              labelStyle: { opacity: 1.0 },
+              zIndex: 2,
+              clickable: false
+            });
+            google.maps.event.addListener(statMarker[rank], 'click', function() {
+              //情報ウィンドウ閉じる
+              for(var i = 0; i < tree_id; i++){
+                infowindow[i].close();
+              }
+              infowindow[eval(this.getTitle())].open(map,statMarker[eval(this.getTitle())]);
+            });
+            
+            tree_id = tree_id + 1;
+<%
+          end
+        end
+%>
+    });
+
+    function mouseOverTR(obj, bgcolor) {
+      obj.style.backgroundColor = "#FFFF55";
+    }
+    function mouseOutTR(obj, bgcolor) {
+      if (obj!=gActiveobj){
+        obj.style.backgroundColor = bgcolor;
+      }
+    }
+    function mClickTR(obj, bgcolor) {
+      if (gActiveobj){
+        gActiveobj.style.backgroundColor = gActivecolor;
+      }
+      gActiveobj = obj;
+      gActivecolor = bgcolor;
+      obj.style.backgroundColor = "#FFFF55";
+      var rowindex = obj.rowIndex-1
+      var marker = statMarker[rowindex];
+      var pos = new google.maps.LatLng(marker.position.lat(),marker.position.lng());
+      map.panTo(pos);
+      for (var i = 0; i < statMarker.length; ++i) { 
+        infowindow[i].close();
+      }
+      infowindow[rowindex].open(map,statMarker[rowindex]);
+    }
+    function mouseOverTR2(obj) {
+      obj.style.backgroundColor = "#FFFF55";
+    }
+    function mouseOutTR2(obj) {
+      obj.style.backgroundColor = "";
+    }
+    function mClickTR2(obj) {
+      obj.style.backgroundColor = "#FFFF55";
+      var pos = new google.maps.LatLng(carMarker.position.lat(),carMarker.position.lng());
+      map.panTo(pos);
+    }
+    function froute_recommend_add(){
+      if ("<%= @track_latlng %>"==""){
+        alert("走行実績がありません。");
+        return false;
+      }
+      $('#modal').dialog({
+        title: "推奨ルート設定　",
+        modal: true,
+        show : "fade",
+        hide : "fade",
+        width: 700,
+        height: 300,
+        open:function(event, ui){ 
+          $(".ui-dialog-titlebar-close").show();
+        }
+      });
+    }
+    function froute_recommend_submit(){
+      if(window.confirm('推奨ルートとして設定しますが、よろしいですか？')){
+        document.getElementById("route_recommend_flg").value = 1;
+        document.querySelector("#input_form [type='submit']").click();
+      }else{
+        return false;
+      }
+    }
+    function froute_point_submit(){
+      if(window.confirm('※※収集区内ステーションの並び順を収集時間順に変更します。※※\r\nよろしいですか？')){
+        document.getElementById("route_recommend_flg").value = 2;
+        document.querySelector("#input_form [type='submit']").click();
+      }else{
+        return false;
+      }
+    }
+    
+    function fspot_station_set(spot_no, latitude, longitude, finish_timing, out_timing){
+      getAddress(new google.maps.LatLng(latitude,longitude));
+      document.getElementById("latitude_new_").value = latitude;
+      document.getElementById("longitude_new_").value = longitude;
+      document.getElementById("carrun_id_new_").value = <%= @t_carrun.id.to_s %>;
+      document.getElementById("out_timing_new_").value = decodeURIComponent(out_timing);
+      document.getElementById("car_code_new_").value = "<%= @t_carrun.car_code.to_s %>";
+      document.getElementById("spot_no_new_").value = spot_no;
+      document.getElementById("finish_timing_new_").value = decodeURIComponent(finish_timing);
+      document.getElementById("route_code_new_").value = "<%= @t_carrun.route_code.to_s %>";
+      document.getElementById("cust_name_new_").value = "";
+      document.getElementById("admin_code_new_").value = "";
+      document.getElementById("use_content_new_").value = "";
+      document.getElementById("setai_count_new_").value = "";
+      document.getElementById("use_count_new_").value = "";
+      document.getElementById("memo_new_").value = "";
+      document.getElementById("shinsei_date_new_").value = "<%= @now_date %>";
+      document.getElementById("start_date_new_").value = "";
+      document.getElementById("div_admin_name").innerHTML = "";
+      document.getElementById("div_admin_type").innerHTML = "";
+      $('#modal_spot').dialog({
+        title: "ステーション登録　",
+        modal: true,
+        show : "fade",
+        hide : "fade",
+        width: 600,
+        height: 600,
+        open:function(event, ui){ 
+          $(".ui-dialog-titlebar-close").show();
+        }
+      });
+    }
+    function getAddress(latlng) {
+
+      // ジオコーダのコンストラクタ
+      geocoder = new google.maps.Geocoder();
+      var address = "";
+      
+      // geocodeリクエストを実行。
+      // 第１引数はGeocoderRequest。緯度経度⇒住所の変換時はlatLngプロパティを入れればOK。
+      geocoder.geocode({
+        latLng: latlng
+      }, function(results, status) {
+        if (status == google.maps.GeocoderStatus.OK) {
+          // results.length > 1 で返ってくる場合もありますが・・・。
+          if (results[0].geometry) {
+
+            // 住所を取得(日本の場合だけ「日本, 」を削除)
+            address = results[0].formatted_address.replace(/^日本、/, '');
+            document.getElementById("address_new_").value = address;
+          }
+        } else {
+          document.getElementById("address_new_").value = "";
+          alert("エラーが発生しました。");
+        }
+      });
+    }
+    
+    function getAdminInfo() {
+      document.getElementById("chg_flg_new_").value = 2;
+      $("#modal_form").submit();
+    }
+   function getStationNo(){
+     //ステーションの番号取得
+     if(document.getElementById('cust_name_new_').value.length<=0){
+       alert("ステーション名を入力してください。");
+       return false;
+     }
+     document.getElementById("chg_flg_new_").value = 3;
+     $("#modal_form").submit();
+   }
+   function getValidityChk() {
+     //妥当性検査チェック
+     if(document.getElementById('cust_name_new_').value.length<=0){
+       alert("ステーション名は入力必須です。");
+       return false;
+     }
+     if(document.getElementById('address_new_').value.length<=0){
+       alert("住所は入力必須です。");
+       return false;
+     }
+     if(document.getElementById('setai_count_new_').value.length>0 && document.getElementById("setai_count_new_").value.match(/[^0-9]+/)){
+       alert("利用世帯数は半角数字で入力してください。");
+       return false;
+     }
+     if(document.getElementById('use_count_new_').value.length>0 && document.getElementById("use_count_new_").value.match(/[^0-9]+/)){
+       alert("利用人数は半角数字で入力してください。");
+       return false;
+     }
+     if(document.getElementById('shinsei_date_new_').value.length>0 && commonCkDate(document.getElementById('shinsei_date_new_').value)==false){
+       alert("申請日の日付形式が正しくありません。（YYYY/MM/DD）");
+       return false;
+     }
+     if(document.getElementById('start_date_new_').value.length>0 && commonCkDate(document.getElementById('start_date_new_').value)==false){
+       alert("収集開始日の日付形式が正しくありません。（YYYY/MM/DD）");
+       return false;
+     }
+     if(window.confirm('ステーションを登録しますがよろしいですか？')){
+       $(document).on("submit", ".modal_form", function(){
+         $(".modal_form").off();
+         $("#modal_form").submit();
+       });
+     }else{
+       return false;
+     }
+   }
+  </script>
+<% end %>

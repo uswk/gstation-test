@@ -1,0 +1,4 @@
+class MRoutePoint < ActiveRecord::Base
+  attr_accessible :route_code, :tree_no, :cust_kbn, :cust_code
+
+end

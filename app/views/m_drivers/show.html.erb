@@ -1,0 +1,27 @@
+<h1>運転者詳細画面</h1>
+
+<table>
+  <thead>
+    <tr>
+      <th width=30%>運転者コード</th>
+      <td width=70%><%= @m_driver.driver_code %></td>
+    </tr>
+    <tr>
+      <th>運転者名</th>
+      <td><%= @m_driver.driver_name %></td>
+    </tr>
+    <tr>
+      <th>部署</th>
+      <td><%= @m_driver.section_name %></td>
+    </tr>
+    <tr>
+      <th>委託会社</th>
+      <td><%= @m_driver.cust_name %></td>
+    </tr>
+  </thead>
+</table>
+<br>
+<% if current_user.authority!=9 %>
+  <%= link_to '編集', edit_m_driver_path(@m_driver), :class => 'btn', :style=>'text-decoration:none;' %>&nbsp;&nbsp;
+<% end %>
+<%= link_to '戻る', m_drivers_path, :class => 'btn', :style=>'text-decoration:none;' %>

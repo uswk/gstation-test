@@ -1,0 +1,45 @@
+<h1>SMTPメール設定画面</h1>
+
+<%= form_tag("m_mail_settings", method: "post") do %>
+<table>
+  <thead>
+    <tr>
+      <th width=30%>電子メールアドレス</th>
+      <td width=70%><%= @user_name %></td>
+    </tr>
+    <tr>
+      <th>送信メール（SMTP）</th>
+      <td><%= @address %></td>
+    </tr>
+    <tr>
+      <th>ドメイン</th>
+      <td><%= @domain %></td>
+    </tr>
+    <tr>
+      <th>ポート番号（SMTP）</th>
+      <td><%= @port %></td>
+    </tr>
+    <tr>
+      <th>認証</th>
+      <td><%= @m_combo_authentication.class_name %></td>
+    </tr>
+    <tr>
+      <th>表示名</th>
+      <td><%= @display_name %></td>
+    </tr>
+    <tr>
+      <th>返信先アドレス（Reply-To）</th>
+      <td><%= @reply_to_mail %></td>
+    </tr>
+  </thead>
+</table>
+<br>
+<% if current_user.authority == 1 %>
+  <% if @update_flg==1 %>
+    <%= link_to '作成', new_m_mail_setting_path, :class => 'btn btn-primary', :style=>'text-decoration:none;' %>
+  <% else %>
+    <%= link_to '編集', edit_m_mail_setting_path(@m_mail_setting.id), :class => 'btn btn-light', :style=>'text-decoration:none;' %>
+  <% end %>
+<% end %>
+
+<% end %>

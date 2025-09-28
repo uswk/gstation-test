@@ -1,0 +1,39 @@
+<h1>委託会社詳細画面</h1>
+
+<table>
+  <thead>
+    <tr>
+      <th width=30%>委託会社ｺｰﾄﾞ</th>
+      <td width=70%><%= @m_custom.cust_code %></td>
+    </tr>
+    <tr>
+      <th>委託会社名</th>
+      <td><%= @m_custom.cust_name %></td>
+    </tr>
+    <tr>
+      <th>住所</th>
+      <td><%= @m_custom.addr_1 %></td>
+    </tr>
+    <tr>
+      <th>ｱﾊﾟｰﾄ・ﾏﾝｼｮﾝ・ﾋﾞﾙ名</th>
+      <td><%= @m_custom.addr_2 %></td>
+    </tr>
+    <tr>
+      <th>電話番号</th>
+      <td><%= @m_custom.tel_no %></td>
+    </tr>
+    <tr>
+      <th>FAX番号</th>
+      <td><%= @m_custom.fax_no %></td>
+    </tr>
+    <tr>
+      <th>備考</th>
+      <td><%= text_area "memo", "", :value=> @m_custom.memo, :rows=>2, :readonly=>true %></td>
+    </tr>
+  </thead>
+</table>
+<br>
+<% if current_user.authority!=9 %>
+  <%= link_to '編集', edit_gyosha_path(@m_custom), :class => 'btn btn-light', :style=>'text-decoration:none;' %>&nbsp;&nbsp;
+<% end %>
+<%= link_to '戻る', gyoshas_path, :class => 'btn btn-light', :style=>'text-decoration:none;' %>

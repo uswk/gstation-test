@@ -1,0 +1,32 @@
+<div id="print_none">
+  <span style="position:relative; top:3px; left:22px;"><input type="image" src="images/up_button.png" alt="上へ" onclick="JupMove();"></span>
+  <br>
+  <span style="position:relative; left:0px;"><input type="image" src="images/left_button.png" alt="左へ" onclick="JleftMove();"></span>
+  <span style="position:relative; left:14px;"><input type="image" src="images/right_button.png" alt="右へ" onclick="JrightMove();"></span>
+  <br>
+  <span style="position:relative; top:-3px; left:22px;"><input type="image" src="images/down_button.png" alt="下へ" onclick="JdownMove();"></span>
+  <span style="position:relative; top:-10px; left:60px;">
+    <%= button_tag '印刷', :onclick => "window.print();", :class => 'btn' %>
+  </span>
+</div>
+<% if not @map_zenrin_cid.blank? %>
+  <div id="print_none">
+    <input type="button" id="mapChange" value="GoogleMapに切替" onclick="map_change()" class='btn'>
+    <br><br>
+  </div>
+  <span id=id_zenrin_map_display style="<%= @zenrin_map_display.to_s %>">
+    <div id="mapContainer" style="position: relative; width:600px; height:920px; border:1px solid #777777;"></div>
+  </span>
+<% end %>
+<div id=id_google_map_display style="<%= @google_map_display.to_s %>">
+  <div class="map_container" style="width:600px; height:920px">
+    <div id="map_canvas" style="width:600px; height:920px"></div>
+  </div>
+</div>
+<%
+  if @map_zenrin_url.blank?
+    render :partial => "znettown"
+  else
+    render :partial => "zenrinmap"
+  end
+%>

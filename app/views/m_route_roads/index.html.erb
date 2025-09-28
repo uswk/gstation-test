@@ -1,0 +1,385 @@
+<h1>推奨ルート補正画面</h1>
+<%= form_tag("m_route_recommends", method: "post", id: "input_form", name: "input_form") do %>
+  収集区名：<%= @m_route.route_name  %>
+  <br><br>
+  <input type=button value="補正確定" onClick="f_route_road_submit(<%= @m_route_recommend.id %>);" class='btn btn-primary'>&nbsp;&nbsp;
+  <%= link_to '戻る', m_route_recommends_path(:routecode => @m_route.route_code, :hold_params=>1,:search_page=>params[:search_page].to_s,:search_routecode=>params[:search_routecode].to_s,:search_routename=>params[:search_routename].to_s,:search_itaku=>params[:search_itaku].to_s,:search_delete=>params[:search_delete].to_s), :class => 'btn' %>
+  <% if not @map_zenrin_cid.blank? %>
+    <input type=button value="ゼンリン住宅地図" class='btn' style="position:relative; top:10px; left:-10px; float: right;" onclick=fzenrin_common_map_display("<%= root_url(only_path: false) %>");>
+  <% end %>
+  <br><br>
+  <div class="map_container">
+    <div id="map_canvas" style="width:100%; height:500px"></div>
+  </div>
+  <input type=hidden id=routecode name=routecode value=<%= @m_route.route_code.to_s %>>
+  <input type=hidden id=upd_flg name=upd_flg value=4>
+  <input type=hidden id=route_recommend_id name=route_recommend_id value=<%= params[:recommend_id] %>>
+  <input type=hidden id=latlng name=latlng>
+  <%= hidden_field_tag :hold_params, 1 %>
+  <%= hidden_field_tag :search_page, params[:search_page].to_s %>
+  <%= hidden_field_tag :search_routecode, params[:search_routecode].to_s %>
+  <%= hidden_field_tag :search_routename, params[:search_routename].to_s %>
+  <%= hidden_field_tag :search_itaku, params[:search_itaku].to_s %>
+  <%= hidden_field_tag :search_delete, params[:search_delete].to_s %>
+<% end %>
+
+<% content_for :scripts do %>
+  <script src="//maps.googleapis.com/maps/api/js?language=ja&key=<%= @map_key %>"></script>
+  <script src="//google-maps-utility-library-v3.googlecode.com/svn/tags/markerclustererplus/2.0.14/src/markerclusterer_packed.js" type="text/javascript"></script>
+  <script src="https://unpkg.com/@googlemaps/markerwithlabel/dist/index.min.js"></script>
+  <script type="text/javascript" charset="utf-8">
+    var latlngData="";
+    var latlngData2="";
+    var arrLatlngData = new Array();
+    var snappedCoordinates = new Array();
+    var iCount = 0;
+    // ラインを引く座標の配列の入れ物を作成
+    var points = new Array();
+    var poly;
+    var polyRoad;
+    var polyLine = "";
+    var arrPoly = new Array();
+    var arrPoly2 = new Array();
+    var pattern_count = eval("<%= params[:pattern_count] %>");
+    var marker= new Array();
+    var treeMarker = new Array();
+    var infowindow = new Array();
+    var myLatlng;
+    var contentString;
+    var seq_id = 0;
+    var icon = "images/marker_icon.png";
+    var loading = "images/git-load.gif";
+
+    // ラインオプションを作成
+    var polyLineOptions = {
+      path: null,
+      strokeWeight: 3,
+      strokeColor: "#ff0000",
+      strokeOpacity: "1"
+    };
+
+    var lat = <%= @def_lat %>;
+    var lng = <%= @def_lng %>;
+    var mapOptions = {
+      zoom: 15,
+      center: new google.maps.LatLng(lat, lng),
+      gestureHandling: "greedy",
+      mapTypeId: google.maps.MapTypeId.ROADMAP,
+      scaleControl: true
+    };
+    var map = new google.maps.Map(document.getElementById('map_canvas'), mapOptions);
+    
+<%
+  if not @m_route_points.nil?
+    @m_route_points.each do |m_route_point|
+%>
+      myLatlng = new google.maps.LatLng(<%= m_route_point.latitude.to_s %>,<%= m_route_point.longitude.to_s %>);
+      
+      if(pattern_count==0){ //最適ルート選択時
+        arrLatlngData.push(myLatlng);
+      }
+      contentString = "<div style='width:400px; height:50px;'><h3>" + "<%= m_route_point.cust_code.to_s %>" + ":" + "<%= m_route_point.cust_name.to_s %>" + "</h3>";
+      contentString = contentString + "</div>";
+      infowindow[seq_id] = new google.maps.InfoWindow({
+        content: contentString,
+        disableAutoPan: true
+      });
+      marker[seq_id] = new google.maps.Marker({
+        position: myLatlng,
+        icon: icon,
+        map: map,
+        zIndex: 1,
+        title: seq_id+''
+      });
+      treeMarker[seq_id] = new google.maps.Marker({
+        position: myLatlng,
+        icon: 'http://chart.apis.google.com/chart?chst=d_text_outline&chld=000000|10|h|ffffff|_|<%= m_route_point.tree_no.to_s %>',
+        map: map,
+        zIndex: 2,
+        clickable: false
+      });
+      treeMarker[seq_id] = new markerWithLabel.MarkerWithLabel({
+        position: myLatlng,
+        map: map,
+        icon: {
+          path: google.maps.SymbolPath.BACKWARD_OPEN_ARROW,
+          scale: 0,
+        },
+        labelContent: " <%= m_route_point.tree_no.to_s %>",
+        labelAnchor: new google.maps.Point(-3, -14),
+        labelClass: "markerwithlabel-labels",
+        labelStyle: { opacity: 1.0 },
+        zIndex: 2,
+        clickable: false
+      });
+      google.maps.event.addListener(marker[seq_id], 'click', function() {
+        //情報ウィンドウ閉じる
+        for(var i = 0; i < seq_id; i++){
+          infowindow[i].close();
+        }
+        infowindow[this.getTitle()].open(map,marker[this.getTitle()]);
+      });
+      seq_id = seq_id + 1;
+<%
+    end
+  end
+%>
+    //ポリライン表示
+    <% if not @m_route_recommend.latlng.blank? %>
+      latlngData = (new Function("return " + "[" + "<%= @m_route_recommend.latlng.to_s %>" + "]"))();
+      polyLineOptions.path = latlngData;
+      poly = new google.maps.Polyline(polyLineOptions);
+      poly.setMap(map);
+      //表示位置移動
+      var pos = new google.maps.LatLng(latlngData[0].lat,latlngData[0].lng);
+      map.panTo(pos);
+    <% end %>
+    
+    if(pattern_count==0){  //#### 最適ルート処理 ################################################
+      var max_count = 12;
+      var way_count = 1;
+      var request = new Array();
+      var directionsRenderer = new Array();
+      var myLatlng_str;
+      var myLatlng_end;
+      var myLatlng_relay = new Array();
+      var routeLineOptions = {
+        path: null,
+        strokeWeight: 3,
+        strokeColor: "#000000",
+        strokeOpacity: "1"
+      };
+      var renderOptions = {
+        polylineOptions: routeLineOptions,
+        suppressMarkers:true
+      };
+      for (var i = 0; i < arrLatlngData.length; i++) {
+        if(i==0){
+          dispLoading("処理中...");
+        }
+        
+        //出発地点、中継地点、目的地点取得
+        if(i == (arrLatlngData.length-1) || way_count==max_count){
+          myLatlng_end = arrLatlngData[i];
+          
+          // 開始地点と終了地点、ルーティングの種類の設定
+          request.push({
+            origin: myLatlng_str,  //開始地点
+            destination: myLatlng_end,  //終了地点
+            waypoints: myLatlng_relay,  //中継地点
+            travelMode: google.maps.DirectionsTravelMode.DRIVING, //ドライビングモード指定（車）
+            unitSystem: google.maps.DirectionsUnitSystem.METRIC, //キロメートルで指定
+            optimizeWaypoints: false, //最適化された最短距離にする
+            avoidHighways: true,  //trueで高速道路を使用しない
+            avoidTolls: true,  //trueで有料道路を使用しない
+            provideRouteAlternatives: false,  //trueで複数複数ルートを返す
+            drivingOptions: {
+              departureTime: new Date(),
+              trafficModel: google.maps.TrafficModel.BEST_GUESS
+            },
+          });
+          
+          myLatlng_str = arrLatlngData[i];
+          myLatlng_relay = new Array();
+          way_count = 1;
+        }else if(way_count==1){
+          myLatlng_str = arrLatlngData[i];
+        }else{
+          myLatlng_relay[way_count-2] = {location: arrLatlngData[i]};
+        }
+        way_count++;
+      }
+
+      new Promise(function(res, rej) { 
+        // ループ処理（再帰的に呼び出し） 
+        function loop(i) {
+          // 非同期処理なのでPromiseを利用 
+          return new Promise(function(resolve, reject) { 
+            
+            // 非同期処理部分 
+            setTimeout(function() {
+              var fail_flg = 0;
+              // ルート検索を行う
+              directionsService = new google.maps.DirectionsService();
+              directionsService.route(request[i], function(result, status) {
+                if (status == google.maps.DirectionsStatus.OK){
+                  directionsRenderer[i] = new google.maps.DirectionsRenderer(renderOptions);
+                  directionsRenderer[i].setDirections(result);
+                  directionsRenderer[i].setMap(map);
+
+                  //ルート保管
+                  for(var i=0;i<result.routes[0].legs.length;i++){
+                    for(var j=0;j<result.routes[0].legs[i].steps.length;j++){
+                      var latlng = new String(result.routes[0].legs[i].steps[j].lat_lngs);
+                      if(polyLine){
+                        polyLine = polyLine + ",";
+                      }
+                      polyLine = polyLine + latlng;
+                    }
+                  }
+                }else{
+                  //失敗時
+                  fail_flg=1;
+                }
+              });
+
+              // resolveを呼び出し 
+              if(fail_flg==1){  //失敗時はもう一度同じ処理をする
+                resolve(i);
+              }else{
+                resolve(i+1);
+              }
+            }, 100); 
+          }) 
+          .then(function(count) { 
+            // ループを抜けるかどうかの判定 
+            if (count > request.length) { 
+              // 抜ける（外側のPromiseのresolve判定を実行） 
+              res(); 
+            } else { 
+              // 再帰的に実行 
+              loop(count); 
+            } 
+          });
+        }
+        loop(0);
+      }).then(function() { 
+        removeLoading();
+        document.getElementById("latlng").value = polyLine;
+      })
+    }else{ //#### 補正処理 ################################################
+      //緯度経度情報を分割して保管
+      for (i = 0;i < latlngData.length;i++) {
+        if(i==0){
+          dispLoading("処理中...");
+        }
+        //補正用緯度経度保管
+        if(iCount!=0){
+          latlngData2 = latlngData2 + "|";
+        }
+        latlngData2 = latlngData2 + latlngData[i].lat + "," + latlngData[i].lng;
+        
+        if(iCount<=pattern_count){
+          iCount = iCount + 1;
+          //最後のレコードの場合
+          if(i==latlngData.length-1){
+            arrLatlngData.push(latlngData2);
+          }
+        }else{
+          arrLatlngData.push(latlngData2);
+          latlngData2 = latlngData[i].lat + "," + latlngData[i].lng;
+          iCount = 1;
+        }
+      }
+
+      new Promise(function(res, rej) { 
+        // ループ処理（再帰的に呼び出し） 
+        function loop(i) {
+          // 非同期処理なのでPromiseを利用 
+          return new Promise(function(resolve, reject) { 
+            
+            // 非同期処理部分 
+            setTimeout(function() { 
+              var fail_flg = 0;
+              
+              $.get("https://roads.googleapis.com/v1/snapToRoads", {
+                interpolate: true,	// 補完を行うかどうか
+                key: "<%= @map_key %>",
+                path: arrLatlngData[i]
+              }, function(data, status){
+                if(status=="success"){
+                  processResponse(data);
+                }else{
+                  //失敗時
+                  fail_flg = 1;
+                }
+              });
+
+              // resolveを呼び出し 
+              if(fail_flg==1){  //失敗時はもう一度同じ処理をする
+                resolve(i);
+              }else{
+                resolve(i+1);
+              }
+            }, 500); 
+          }) 
+          .then(function(count) { 
+            // ループを抜けるかどうかの判定 
+            if (count > arrLatlngData.length) { 
+              // 抜ける（外側のPromiseのresolve判定を実行） 
+              res(); 
+            } else { 
+              // 再帰的に実行 
+              
+              loop(count); 
+            } 
+          }); 
+        }
+        loop(0);
+      }).then(function() { 
+        // スナップされた地点をもとにPolylineを表示
+        polyRoad = new google.maps.Polyline({
+          path: (new Function("return " + "[" + polyLine.replace(/,/g,",lng:").replace(/\)\,lng\:/g,"},").replace(/\(/g,"{lat:").replace(/\)/g,"}") + "]"))(),
+          strokeColor: "#000000",
+          strokeWeight: 3
+        });
+        polyRoad.setMap(map);
+        //補正緯度経度保管
+        document.getElementById("latlng").value = polyLine;
+        removeLoading();
+        alert("推奨ルートの補正が完了しました。");
+      }) 
+    }
+
+    // レスポンス処理
+    function processResponse(data){
+      snappedCoordinates = new Array();
+      var position;
+      var position_lat=0;
+      var position_lng=0;
+      
+      for(var i = 0; i < data.snappedPoints.length; i++){
+        // スナップされた地点の取得
+        position = new google.maps.LatLng(
+          data.snappedPoints[i].location.latitude,
+          data.snappedPoints[i].location.longitude);
+        if(eval(position_lat)!=eval(data.snappedPoints[i].location.latitude) || eval(position_lng)!=eval(data.snappedPoints[i].location.longitude)){  //緯度経度が前回と違う場合のみ追加
+          snappedCoordinates.push(position);
+        }
+        position_lat = data.snappedPoints[i].location.latitude;
+        position_lng = data.snappedPoints[i].location.longitude;
+      }
+      
+      if(polyLine){
+        polyLine = polyLine + ",";
+      }
+      polyLine = polyLine + snappedCoordinates.toString();
+    }
+    
+    function f_route_road_submit(recommend_id){
+      if(!window.confirm('推奨ルートの補正を行いますがよろしいですか？\n※黒線に変更されます。')){
+        return false;
+      }
+      
+      $("#input_form").submit();
+    }
+    
+    // Loading イメージ表示関数
+    function dispLoading(msg){
+      // 引数なし（メッセージなし）を許容
+      if( msg == undefined ){
+        msg = "";
+      }
+      // 画面表示メッセージ
+      var dispMsg = "<div style='display: table-cell; text-align: center; vertical-align: middle; padding-top: 140px; background: url(\"images/gif-load.gif\") center center no-repeat;'>" + msg + "</div>";
+      // ローディング画像が表示されていない場合のみ出力
+      if($("#loading").length == 0){
+        $("body").append("<div id='loading' style='display: table; width: 100%; height: 100%; position: fixed; top: 0; left: 0; background-color: #fff; opacity: 0.8;'>" + dispMsg + "</div>");
+      }
+    }
+    // Loading イメージ削除関数
+    function removeLoading(){
+      $("#loading").remove();
+    }
+  </script>
+<% end %>

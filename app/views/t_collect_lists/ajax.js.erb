@@ -1,0 +1,209 @@
+$('#layer').hide();
+
+  var tree_no;
+  var finish_timing;
+  var mikaishu_code;
+  var mikaishu_count;
+  var id;
+  var cust_kbn;
+  var cust_code;
+  var cust_name;
+  var latitude;
+  var longitude;
+  var mikaishu_codes;
+  var bgcolor;
+  var seq_id = 0;
+  var seq_id_unload = 0;
+  var contentString;
+  var icon;
+  var myLatlng;
+  var infowindow = new Array();
+  var infowindow_unload = new Array();
+  var unload_indust;
+
+  //マーカークリア（念の為）
+  for(var i = 0; i < marker.length; i++){
+    marker[i].setMap(null);
+  }
+  for(var i = 0; i < marker_unload.length; i++){
+    marker_unload[i].setMap(null);
+  }
+<%
+  if not @m_customs.nil?
+    @m_customs.each do |custom|
+%>
+      id = "<%= custom.id %>";
+      cust_kbn = "<%= custom.cust_kbn %>";
+      cust_code = "<%= custom.cust_code %>";
+      cust_name = "<%= custom.cust_name %>";
+      latitude = "<%= custom.latitude %>";
+      longitude = "<%= custom.longitude %>";
+      mikaishu_codes = "<%= custom.mikaishu_codes %>";
+      bgcolor = "<%= custom.bgcolor.to_s %>";
+      tree_no = "";
+      finish_timing = "";
+      mikaishu_code = "";
+      mikaishu_count = "";
+      if(document.getElementById("tree_no_" + cust_code)){
+        tree_no = document.getElementById("tree_no_" + cust_code).value
+        finish_timing = document.getElementById("finish_timing_" + tree_no).value
+        mikaishu_code = document.getElementById("mikaishu_code_" + tree_no).value
+        mikaishu_count = document.getElementById("mikaishu_count_" + tree_no).value
+      }
+      myLatlng = new google.maps.LatLng(latitude,longitude);
+      
+      contentString = "<div style='width:435px; height:100px;'><h3>" + cust_name + "</h3>";
+
+      if(tree_no){
+        if(!finish_timing){
+          icon = "images/marker_icon.png";
+        }else if(!mikaishu_code && !mikaishu_count){
+          icon = "images/marker_icon2.png";
+        }else{
+          icon = "images/marker_icon3.png";
+        }
+      }else{
+        contentString = contentString + "<input type='button' value='収集区に追加' onclick=fcarrun_add('" + cust_kbn + "','" + cust_code + "','" + encodeURIComponent(cust_name) + "','" + encodeURIComponent(mikaishu_codes) + "','" + latitude + "','" + longitude + "','" + bgcolor + "','','',''); class='btn btn-primary'>";
+        if(bgcolor){
+          icon = "images/marker_icon_del.png";
+        }else{
+          icon = "";
+        }
+      }
+      contentString = contentString + "&nbsp;&nbsp;&nbsp;<input type=button value='メモ' onclick=fcustom_memo_common('" + cust_code + "','<%= root_url(only_path: false) %>'); class='btn'>";
+      contentString = contentString + "&nbsp;&nbsp;&nbsp;<input type=button value='収集履歴' onclick=fcustom_carrun_common('" + cust_kbn + "','" + cust_code + "','<%= root_url(only_path: false) %>'); class='btn'>";
+      contentString = contentString + "&nbsp;&nbsp;&nbsp;<input type=button value='詳細' onclick=fcustom_detail_common('" + id + "','<%= root_url(only_path: false) %>',''); class='btn'>";
+      <% if current_user.authority!=9 %>
+        contentString = contentString + "&nbsp;&nbsp;<input type=button value='編集' onclick=fcustom_detail_common('" + id + "','<%= root_url(only_path: false) %>','/edit'); class='btn'>";
+      <% end %>
+      contentString = contentString + "</div>";
+      infowindow[seq_id] = new google.maps.InfoWindow({
+        content: contentString,
+        disableAutoPan: true
+      });
+      marker[seq_id] = new google.maps.Marker({
+        position: myLatlng,
+        icon: icon,
+        map: map,
+        title: ""+seq_id
+      });
+      google.maps.event.addListener(marker[seq_id], 'click', function() {
+        //情報ウィンドウ閉じる
+        for(var i = 0; i < seq_id; i++){
+          infowindow[i].close();
+        }
+        infowindow[this.getTitle()].open(map,marker[this.getTitle()]);
+      });
+      seq_id += 1;
+<%
+    end
+  end
+%>
+//スポット収集分
+var elements_code = document.getElementsByName("cust_code[]");
+var elements_name = document.getElementsByName("cust_name[]");
+var elements_lat = document.getElementsByName("latitude[]");
+var elements_lng = document.getElementsByName("longitude[]");
+var elements_finish_timing = document.getElementsByName("finish_timing[]");
+var elements_mikaishu_code = document.getElementsByName("mikaishu_code[]");
+var elements_mikaishu_count = document.getElementsByName("mikaishu_count[]"); 
+
+for (iCount = 0; iCount < elements_code.length; iCount++){
+  if(elements_code[iCount].value=='*'){
+    
+    myLatlng = new google.maps.LatLng(elements_lat[iCount].value,elements_lng[iCount].value);
+    
+    contentString = "<div style='width:435px; height:100px;'><h3>スポット収集分</h3>";
+    contentString = contentString + "</div>";
+    if(!elements_finish_timing[iCount].value){
+      icon = "images/marker_icon.png";
+    }else if(!elements_mikaishu_code[iCount].value && !elements_mikaishu_count[iCount].value){
+      icon = "images/marker_icon2.png";
+    }else{
+      icon = "images/marker_icon3.png";
+    }
+    infowindow[seq_id] = new google.maps.InfoWindow({
+      content: contentString,
+      disableAutoPan: true
+    });
+    marker[seq_id] = new google.maps.Marker({
+      position: myLatlng,
+      icon: icon,
+      map: map,
+      title: ""+seq_id
+    });
+    google.maps.event.addListener(marker[seq_id], 'click', function() {
+      //情報ウィンドウ閉じる
+      for(var i = 0; i < seq_id; i++){
+        infowindow[i].close();
+      }
+      infowindow[this.getTitle()].open(map,marker[this.getTitle()]);
+    });
+    seq_id = seq_id + 1;
+  }
+}
+//荷下先分
+<%
+  if not @unloads.nil?
+    @unloads.each do |unload|
+%>
+      id = "<%= unload.id %>";
+      cust_kbn = "<%= unload.cust_kbn %>";
+      cust_code = "<%= unload.cust_code %>";
+      cust_name = "<%= unload.cust_name %>";
+      latitude = "<%= unload.latitude %>";
+      longitude = "<%= unload.longitude %>";
+      unload_indust = "<%= unload.indust %>";
+      myLatlng = new google.maps.LatLng(latitude,longitude);
+      contentString = "<div style='width:435px; height:250px;'><h3>" + cust_name + "</h3>";
+      contentString = contentString + "荷下時間：<input type=text name=time_" + cust_code + " id=time_" + cust_code + " size=5 maxlength=8>&nbsp;(hh:mm:ss形式)<br><br>";
+      var arrIndust = new Array();
+      if(unload_indust){
+      contentString = contentString + "<div style='height:120px; width:430px; overflow-y:scroll;'>";
+        contentString = contentString + "<table>";
+        arrIndust = (new Function("return " + "[" + decodeURIComponent(unload_indust) + "]"))();
+        for(key in arrIndust){
+          contentString = contentString + "<thead><tr>";
+          contentString = contentString + "<th>" + arrIndust[key].indust_name + "</th>"
+          contentString = contentString + "<td><input type='text' name=qty_" + cust_code + "_" + arrIndust[key].indust_kbn + " id=qty_" + cust_code + "_" + arrIndust[key].indust_kbn + " size=3>&nbsp;" + arrIndust[key].unit_name + "</td>";
+          contentString = contentString + "<input type='hidden' name=unit_" + cust_code + "_" + arrIndust[key].indust_kbn + " id=unit_" + cust_code + "_" + arrIndust[key].indust_kbn + " value=" + arrIndust[key].unit_kbn + ">";
+          contentString = contentString + "</tr></thead>";
+        }
+        contentString = contentString + "</table>";
+        contentString = contentString + "</div>";
+      }
+      contentString = contentString + "<br><input type='button' value='収集区に追加' onclick=fcarrun_unload_add('" + cust_kbn + "','" + cust_code + "','" + encodeURIComponent(cust_name) + "','" + latitude + "','" + longitude + "','','" + unload_indust + "'); class='btn btn-primary'>";
+      contentString = contentString + "&nbsp;&nbsp;&nbsp;<input type=button value='荷降履歴' onclick=fcustom_carrun_common('" + cust_kbn + "','" + cust_code + "','<%= root_url(only_path: false) %>'); class='btn'>";
+      contentString = contentString + "&nbsp;&nbsp;&nbsp;<input type=button value='詳細' onclick=funload_detail_common('" + id + "','<%= root_url(only_path: false) %>',''); class='btn'>";
+      <% if current_user.authority!=9 %>
+        contentString = contentString + "&nbsp;&nbsp;<input type=button value='編集' onclick=fcustom_detail_common('" + id + "','<%= root_url(only_path: false) %>','/edit'); class='btn'>";
+      <% end %>
+      contentString = contentString + "</div>";
+      icon = "images/marker_icon_unload.png";
+      
+      infowindow_unload[seq_id_unload] = new google.maps.InfoWindow({
+        content: contentString,
+        disableAutoPan: true
+      });
+      marker_unload[seq_id_unload] = new google.maps.Marker({
+        position: myLatlng,
+        icon: icon,
+        map: map,
+        title: ""+seq_id_unload
+      });
+      google.maps.event.addListener(marker_unload[seq_id_unload], 'click', function() {
+        //情報ウィンドウ閉じる
+        for(var i = 0; i < seq_id_unload; i++){
+          infowindow_unload[i].close();
+        }
+        infowindow_unload[this.getTitle()].open(map,marker_unload[this.getTitle()]);
+      });
+      seq_id_unload += 1;
+<%
+    end
+  end
+%>
+
+
+$('#layer').hide();
+

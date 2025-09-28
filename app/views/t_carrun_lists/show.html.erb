@@ -1,0 +1,72 @@
+<h1>メッセージ送信履歴一覧画面</h1>
+<p id="notice"><%= notice %></p>
+<%= form_tag(@m_car.id.to_s , method: "get") do %>
+  <table>
+    <thead>
+      <tr>
+        <th>車両</th>
+        <td><%= @m_car.blank? ? "":@m_car.car_reg_code %></td>
+      </tr>
+      <tr>
+        <th>期間選択</th>
+        <td>
+          <%= text_field 'search_from', 'query', :class => 'datepicker_sub input-small', :maxlength=>10, :value => @date_from %>
+          &nbsp;～&nbsp;
+          <%= text_field 'search_to', 'query', :class => 'datepicker_sub input-small', :maxlength=>10, :value => @date_to %>
+          &nbsp;<%= submit_tag "検索", :class => 'btn' %>
+        </td>
+      </tr>
+    </thead>
+  </table>
+  <%= hidden_field_tag :search_flg, 1 %>
+<% end %>
+<br>
+<%= button_tag '閉じる', :onclick => 'return JMessageHistClose();', :class => 'btn' %>
+<br><br>
+<%= paginate(@t_car_messages) %>
+<table class='form-horizontal'>
+  <thead>
+    <tr>
+      <th>日時</th>
+      <th>メッセージ</th>
+      <th>応答日時</th>
+      <th>応答</th>
+      <th>表示期間</th>
+      <% if current_user.authority!=9 %>
+        <th>&nbsp;</th>
+      <% end %>
+    </tr>
+  </thead>
+  <tbody>
+    <% @iCount = 0 %>
+    <% @t_car_messages.each do |t_car_message| %>
+      <% @bgcolor = t_car_message.response_time.nil? ? "bgcolor=pink":"" %>
+      <tr>
+        <td <%= @bgcolor %>><%= t_car_message.time.strftime("%Y/%m/%d %H:%M:%S") %></td>
+        <td <%= @bgcolor %>><%= text_area :message, @iCount, :value=>t_car_message.message, :size=>"50x1", :readonly=>true, :onclick=>"Jmouseover_message(" + @iCount.to_s + ");", :onmouseout=>"Jmouseout_message(" + @iCount.to_s + ");" %></td>
+        <td <%= @bgcolor %>><%= t_car_message.response_time.blank? ? "" : t_car_message.response_time.strftime("%Y/%m/%d %H:%M:%S") %></td>
+        <td <%= @bgcolor %>><%= t_car_message.answer_name %></td>
+        <td <%= @bgcolor %>><%= t_car_message.start_date.strftime("%Y/%m/%d") %>～<%= t_car_message.end_date.strftime("%Y/%m/%d") %></td>
+        <% if current_user.authority!=9 %>
+          <td <%= @bgcolor %>>
+            <%= link_to '削除', t_carrun_list_path(t_car_message), method: :delete, data: { confirm: '削除しますがよろしいですか?' }, :style=>"color:white;", :class => 'btn btn-mini btn-danger' %>
+          </td>
+        <% end %>
+      </tr>
+      <% @iCount = @iCount + 1 %>
+    <% end %>
+  </tbody>
+</table>
+<% content_for :scripts do %>
+<script type="text/javascript" charset="utf-8">
+  function Jmouseover_message(message_count){
+    document.getElementById("message_"+message_count).rows=8;
+  }
+  function Jmouseout_message(message_count){
+    document.getElementById("message_"+message_count).rows=1;
+  }
+  function JMessageHistClose(){
+    window.parent.jQuery('#modal_message').dialog('close');
+  }
+</script>
+<% end %>

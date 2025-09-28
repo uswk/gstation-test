@@ -1,0 +1,6 @@
+<h1>分類マスタ編集画面</h1>
+
+<%= render 'form' %>
+
+  <%= link_to '戻る', m_combos_path(:class1 => params[:class1].nil? ? @m_combo.class_1 : params[:class1]), :class => 'btn', :style=>'text-decoration:none;' %>
+</div>

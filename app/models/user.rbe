@@ -1,0 +1,19 @@
+class User < ActiveRecord::Base
+  # Include default devise modules. Others available are:
+  # :token_authenticatable, :confirmable,
+  # :lockable, :timeoutable and :omniauthable
+  devise :database_authenticatable, :registerable,
+         :recoverable, :rememberable, :trackable, :validatable
+
+  validates :user_id, :uniqueness => {:message =>"　ログインIDが重複しています。"}
+  validates_presence_of :user_id, :message => "　ログインIDは入力必須です。"
+  validates_presence_of :user_name, :message => "　ユーザー名は入力必須です。"
+
+  # Setup accessible (or protected) attributes for your model
+  attr_accessible :user_id, :user_name, :email, :password, :password_confirmation, :remember_me, :authority, :login_authority, :itaku_code
+  # attr_accessible :title, :body
+  
+  def email_required?
+    false
+  end
+end

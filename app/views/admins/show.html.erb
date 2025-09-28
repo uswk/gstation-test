@@ -1,0 +1,81 @@
+<h1>管理者詳細画面</h1>
+
+<table>
+  <thead>
+    <tr>
+      <th width=30%>管理者ｺｰﾄﾞ</th>
+      <td width=70%><%= @m_custom.cust_code %></td>
+    </tr>
+    <tr>
+      <th>管理者名</th>
+      <td><%= @m_custom.cust_name %></td>
+    </tr>
+    <tr>
+      <th>管理者種別</th>
+      <td><%= @m_custom.class_name %></td>
+    </tr>
+    <tr>
+      <th>地区</th>
+      <td><%= @m_custom.district %></td>
+    </tr>
+    <tr>
+      <th>地区名</th>
+      <td><%= @m_custom.district_name %></td>
+    </tr>
+    <tr>
+      <th>並び順</th>
+      <td><%= @m_custom.seq %></td>
+    </tr>
+    <tr>
+      <th>住所</th>
+      <td><%= @m_custom.addr_1 %></td>
+    </tr>
+    <tr>
+      <th>ｱﾊﾟｰﾄ・ﾏﾝｼｮﾝ・ﾋﾞﾙ名</th>
+      <td><%= @m_custom.addr_2 %></td>
+    </tr>
+    <tr>
+      <th>Ｅメール</th>
+      <td><%= @m_custom.email %></td>
+    </tr>
+    <tr>
+      <th>電話番号</th>
+      <td><%= @m_custom.tel_no %></td>
+    </tr>
+    <tr>
+      <th>FAX番号</th>
+      <td><%= @m_custom.fax_no %></td>
+    </tr>
+    <tr>
+      <th>備考</th>
+      <td><%= text_area "memo", "", :value=> @m_custom.memo, :rows=>2, :readonly=>true %></td>
+    </tr>
+  </thead>
+</table>
+<br>
+<table>
+  <thead>
+    <tr>
+      <th colspan=3>管理ステーション</th>
+    </tr>
+    <tr>
+      <th>ｽﾃｰｼｮﾝｺｰﾄﾞ</th>
+      <th>ステーション名</th>
+      <th>住所</th>
+    </tr>
+  </thead>
+  <tbody>
+    <% @station_details.each do |station_detail| %>
+      <tr>
+        <td <%= station_detail.bg_color %>><%= station_detail.cust_code %></td>
+        <td <%= station_detail.bg_color %>><%= station_detail.cust_name %></td>
+        <td <%= station_detail.bg_color %>><%= (station_detail.addr_1.to_s + ' ' + station_detail.addr_2.to_s).strip %></td>
+      </tr>
+    <% end %>
+  </tbody>
+</table>
+<br>
+<% if current_user.authority!=9 %>
+  <%= link_to '編集', edit_admin_path(@m_custom), :class => 'btn btn-primary' %>&nbsp;&nbsp;
+<% end %>
+<%= link_to '戻る', admins_path(:search_mode=>@search_mode), :class => 'btn btn-light' %>

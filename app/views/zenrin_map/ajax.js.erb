@@ -1,0 +1,180 @@
+
+<% if @map_zenrin_url.blank? %>
+
+    var id;
+    var cust_kbn;
+    var cust_code;
+    var cust_name;
+    var cust_addr;
+    var admin_name;
+    var admin_tel;
+    var type_value;
+    var marker_color;
+    var bgcolor;
+    var seq_id = 0;
+    var contentString;
+    var infowindow = new Array();
+
+    var arrLat = new Array();
+    var arrLng = new Array();
+    
+    //マーカー初期化（念の為）
+    for(var i = 0; i < geom.length; i++){
+      map_zenrin.removeGeometry(geom[i]);
+    }
+    geom = new Array();
+    
+    //マーカーオプション
+    geopt = new ZntMarkerOptions();
+    geopt.opacity = 1;
+    geopt.visible = true;
+    geopt.zIndex = 0;
+
+    //オフセット
+    var iconOffset;
+    iconOffset = new ZntPoint();
+    iconOffset.x = 4;
+    iconOffset.y = 4;
+    geopt.iconOffset = iconOffset;
+    
+    zenrin_content = new Array();
+    
+    arrIcon = new Array();
+    <% if not @m_customs.nil? %>
+      <% @m_customs.each do |custom| %>
+        id = "<%= custom.id %>";
+        cust_kbn = "<%= custom.cust_kbn %>";
+        cust_code = "<%= custom.cust_code %>";
+        cust_name = "<%= custom.cust_name %>";
+        cust_addr = "<%= (custom.addr_1.to_s + ' ' + custom.addr_2.to_s).strip %>";
+        admin_name = "<%= custom.admin_name.to_s %>";
+        admin_tel = "<%= custom.admin_tel.to_s %>";
+        type_value = "<%= custom.type_value.to_s %>";
+        marker_color = "<%= custom.marker_color.to_s %>";
+        bgcolor = "<%= custom.bgcolor.to_s %>";
+        contentString = "<div style='width:450px; height:160px;'><h3>" + cust_code + ":" + cust_name + "</h3>" + cust_addr + "<br><br>管理者名：" + admin_name + "<br>電話番号：" + admin_tel + "<br><br>";
+        if(cust_kbn=="3"){  //処分場
+          contentString = contentString + "<input type=button value='荷降履歴' onclick=fcustom_carrun_common('" + cust_kbn + "','" + cust_code + "','<%= root_url(only_path: false) %>'); class='btn'>";
+          contentString = contentString + "&nbsp;&nbsp;<input type=button value='詳細' onclick=funload_detail_common('" + id + "','<%= root_url(only_path: false) %>',''); class='btn'>";
+        }else{
+          contentString = contentString + "<input type=button value='メモ' onclick=fcustom_memo_common('" + cust_code + "','<%= root_url(only_path: false) %>'); class='btn'>";
+          contentString = contentString + "&nbsp;&nbsp;<input type=button value='収集履歴' onclick=fcustom_carrun_common('" + cust_kbn + "','" + cust_code + "','<%= root_url(only_path: false) %>'); class='btn'>";
+          contentString = contentString + "&nbsp;&nbsp;<input type=button value='詳細' onclick=fcustom_detail_common('" + id + "','<%= root_url(only_path: false) %>',''); class='btn'>";
+        }
+        contentString = contentString + "</div>";
+        zenrin_content[seq_id] = contentString;
+
+        //マーカー画像
+        if(cust_kbn=="3"){
+          arrIcon[seq_id] = "images/marker_icon_unload.png";
+        }else if(marker_color){
+          arrIcon[seq_id] = "images/" + marker_color;
+        }else if(type_value){
+          arrIcon[seq_id] = "images/" + type_value;
+        }else{
+          arrIcon[seq_id] = "images/marker_icon_normal.png";
+        }
+        if(bgcolor){
+          arrIcon[seq_id] = "images/marker_icon_del.png";
+        }
+        
+        arrLat[seq_id] = Math.round(eval("<%= custom.latitude %>")*3600000);
+        arrLng[seq_id] = Math.round(eval("<%= custom.longitude %>")*3600000);
+        
+        seq_id += 1;
+      <% end %>
+      //測地系変換後、地図表示
+      zenrin_world_japan(arrLat, arrLng, 3);
+   <% end %>
+<% else %>
+    var id;
+    var cust_kbn;
+    var cust_code;
+    var cust_name;
+    var cust_addr;
+    var admin_name;
+    var admin_tel;
+    var type_value;
+    var marker_color;
+    var bgcolor;
+    var seq_id = 0;
+    var contentString;
+    var infowindow = new Array();
+
+    var arrLat = new Array();
+    var arrLng = new Array();
+
+    //マーカー初期化（念の為）
+    for(var i = 0; i < geom.length; i++){
+      map_zenrin.removeWidget(geom[i]);
+    }
+    if(geom_popup){
+      map_zenrin.removeWidget(geom_popup);
+      geom_popup = "";
+    }
+
+    zenrin_content = new Array();
+    geom = new Array();
+
+    arrIcon = new Array();
+    <% if not @m_customs.nil? %>
+      <% @m_customs.each do |custom| %>
+        id = "<%= custom.id %>";
+        cust_kbn = "<%= custom.cust_kbn %>";
+        cust_code = "<%= custom.cust_code %>";
+        cust_name = "<%= custom.cust_name %>";
+        cust_addr = "<%= (custom.addr_1.to_s + ' ' + custom.addr_2.to_s).strip %>";
+        admin_name = "<%= custom.admin_name.to_s %>";
+        admin_tel = "<%= custom.admin_tel.to_s %>";
+        type_value = "<%= custom.type_value.to_s %>";
+        marker_color = "<%= custom.marker_color.to_s %>";
+        bgcolor = "<%= custom.bgcolor.to_s %>";
+        contentString = "<div style='width:450px; height:160px;'><h3>" + cust_code + ":" + cust_name + "</h3>" + cust_addr + "<br><br>管理者名：" + admin_name + "<br>電話番号：" + admin_tel + "<br><br>";
+        if(cust_kbn=="3"){  //処分場
+          contentString = contentString + "<input type=button value='荷降履歴' onclick=fcustom_carrun_common('" + cust_kbn + "','" + cust_code + "','<%= root_url(only_path: false) %>'); class='btn'>";
+          contentString = contentString + "&nbsp;&nbsp;<input type=button value='詳細' onclick=funload_detail_common('" + id + "','<%= root_url(only_path: false) %>',''); class='btn'>";
+        }else{
+          contentString = contentString + "<input type=button value='メモ' onclick=fcustom_memo_common('" + cust_code + "','<%= root_url(only_path: false) %>'); class='btn'>";
+          contentString = contentString + "&nbsp;&nbsp;<input type=button value='収集履歴' onclick=fcustom_carrun_common('" + cust_kbn + "','" + cust_code + "','<%= root_url(only_path: false) %>'); class='btn'>";
+          contentString = contentString + "&nbsp;&nbsp;<input type=button value='詳細' onclick=fcustom_detail_common('" + id + "','<%= root_url(only_path: false) %>',''); class='btn'>";
+        }
+        contentString = contentString + "</div>";
+        zenrin_content[seq_id] = contentString;
+
+        //マーカー画像
+        if(cust_kbn=="3"){
+          arrIcon[seq_id] = "images/marker_icon_unload.png";
+        }else if(marker_color){
+          arrIcon[seq_id] = "images/" + marker_color;
+        }else if(type_value){
+          arrIcon[seq_id] = "images/" + type_value;
+        }else{
+          arrIcon[seq_id] = "images/marker_icon_normal.png";
+        }
+        if(bgcolor){
+          arrIcon[seq_id] = "images/marker_icon_del.png";
+        }
+        
+        arrLat[seq_id] = "<%= custom.latitude %>";
+        arrLng[seq_id] = "<%= custom.longitude %>";
+
+        //地図表示
+        geom[seq_id] = new ZDC.Marker(
+          //マーカー設定
+          new ZDC.LatLng(arrLat[seq_id], arrLng[seq_id]),
+          {
+            offset: new ZDC.Point(4, 4),
+            custom: {
+              base : {
+                imgSrc: arrIcon[seq_id]
+              }
+            }
+          }
+        );
+        openPopup(seq_id);
+        //吹き出し設定
+        map_zenrin.addWidget(geom[seq_id]);
+        seq_id += 1;
+      <% end %>
+   <% end %>
+<% end %>

@@ -1,0 +1,38 @@
+<h1>ステーション情報コンバート画面</h1>
+<div id="cover">
+  <table>
+    <thead>
+    <%= form_tag("converts", method: "post", id: "inputform", name: "inputform", :multipart =>true) do %>
+      <tr>
+        <th>ファイル指定</th>
+        <td><%= file_field_tag :file_name %></td>
+      </tr>
+      <tr>
+        <td colspan=4 align=center>
+          <input type=hidden name=chg_flg value=1>
+          <%= submit_tag "データ作成する" %>
+        </td>
+      </tr>
+    <% end %>
+    <%= form_tag("converts", method: "post", id: "latlngform", name: "latlngform") do %>
+      <tr>
+        <td colspan=4 align=center>
+          <input type=hidden name=chg_flg value=2>
+          <%= submit_tag "緯度経度再設定" %>
+        </td>
+      </tr>
+    <% end %>
+    <%= form_tag("converts", method: "post", id: "addrform", name: "addrform") do %>
+      <tr>
+        <td colspan=4 align=center>
+          住所は緯度経度より取得します。<br>
+          ステーション名、住所は備考に保管します。<br>
+          <br>
+          <input type=hidden name=chg_flg value=3>
+          <%= submit_tag "ステーション名・住所再設定" %>
+        </td>
+      </tr>
+    <% end %>
+    </thead>
+  </table>
+</div>

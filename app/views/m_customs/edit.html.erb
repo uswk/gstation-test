@@ -1,0 +1,227 @@
+<% content_for :js do %>
+  <%= javascript_include_tag "common" %>
+  <%= javascript_include_tag "m_route_points" %>
+<% end %>
+
+<h1>ステーション編集画面</h1>
+
+<%= render 'form' %>
+<% if not @header_no_dsp %>
+  <% if not @routecode %>
+    <% if params[:lat_del] %>
+      <% @url_para = "../../m_customs/" + params[:id] + "?zoom_del=" + params[:zoom_del] + "&lat_del=" + params[:lat_del] + "&lng_del=" + params[:lng_del] %>
+      <% @url_para = "../../m_custom_add?zoom_del=" + params[:zoom_del] + "&lat_del=" + params[:lat_del] + "&lng_del=" + params[:lng_del] %>
+      <%= link_to '戻る', @url_para, :class => 'btn', :style=>'text-decoration:none;' %>
+    <% else %>
+      <%= link_to '戻る', m_customs_path(:hold_params=>1,:page=>params[:search_page].to_s,:search_custcode=>params[:search_custcode].to_s,:search_custname=>params[:search_custname].to_s,:search_custaddr=>params[:search_custaddr].to_s,:search_custadmin=>params[:search_custadmin].to_s,:search_routecode=>params[:search_routecode].to_s,:search_custpage=>params[:search_custpage].to_s,:search_delete=>params[:search_delete].to_s), :class => 'btn', :style=>'text-decoration:none;' %>
+    <% end %>
+  <% else %>
+      <% @url_para = "../../m_route_points?zoom_del=" + params[:zoom_del] + "&lat_del=" + params[:lat_del] + "&lng_del=" + params[:lng_del] + "&routecode=" + @routecode %>
+      <%= link_to '戻る', @url_para, :class => 'btn', :style=>'text-decoration:none;' %>
+  <% end %>
+<% else %>
+  <input type="button" id="modalClose" value="閉じる" onclick="modal_close()" class='btn'>
+<% end %>
+</div>
+<% content_for :scripts do %>
+<script src="//maps.googleapis.com/maps/api/js?v=3.23&language=ja&key=<%= @map_key %>"></script>
+<script src="//google-maps-utility-library-v3.googlecode.com/svn/tags/markerclustererplus/2.0.14/src/markerclusterer_packed.js" type="text/javascript"></script>
+<script type="text/javascript" charset="utf-8">
+  var myLatlng;
+  var marker;
+  var infowindow;
+
+  myLatlng = new google.maps.LatLng("<%= @m_custom.latitude.to_s %>","<%= @m_custom.longitude.to_s %>");
+  var mapOptions = {
+    auto_zoom: false,
+    zoom: 18,
+    auto_adjust: false,
+    center: myLatlng,
+    gestureHandling: "greedy",
+    mapTypeId: google.maps.MapTypeId.ROADMAP
+  }
+  var map = new google.maps.Map(document.getElementById("map_canvas"), mapOptions);
+  
+  infowindow = new google.maps.InfoWindow({
+        content: '<div style="width:220px; height:120px;" class="popup"><h2><%= @m_custom.cust_code.to_s %></h2><p><%= @m_custom.cust_name.to_s %></p>'
+  });
+  marker = new google.maps.Marker({
+    position: myLatlng,
+    title: "ステーション位置",
+    draggable: true,
+    map: map
+  });
+  google.maps.event.addListener(marker, 'dragend', function()
+  {
+    HandleDragend(this.getPosition(),marker);
+  });
+
+  function HandleDragend(pos,marker) {
+    var geocoder = new google.maps.Geocoder();
+    geocoder.geocode({
+      latLng: pos
+    }, function(responses) {
+      if (responses && responses.length > 0) {
+          var vMaker;
+          var vAddr = responses[0].formatted_address.replace("日本, ", "");
+          document.getElementById('m_custom_latitude').value =pos.lat();
+          document.getElementById('m_custom_longitude').value =pos.lng();
+       }
+    });
+  }
+  infowindow.open(map, marker);
+  google.maps.event.addListener(marker, 'click', function() {
+    infowindow.open(map,marker);
+  });
+
+function getAdminInfo() {
+  document.getElementById('admin_code_new_').value =document.getElementById('m_custom_admin_code').value;
+  $("#modal_form").submit();
+}
+function getAdminChk() {
+  //妥当性検査チェック
+  if(document.getElementById('m_custom_setai_count').value.length>0 && document.getElementById("m_custom_setai_count").value.match(/[^0-9]+/)){
+      alert("利用世帯数は半角数字で入力してください。");
+      return false;
+  }
+  if(document.getElementById('m_custom_use_count').value.length>0 && document.getElementById("m_custom_use_count").value.match(/[^0-9]+/)){
+      alert("利用人数は半角数字で入力してください。");
+      return false;
+  }
+  if(document.getElementById('m_custom_shinsei_date').value.length>0 && commonCkDate(document.getElementById('m_custom_shinsei_date').value)==false){
+      alert("申請日の日付形式が正しくありません。（YYYY/MM/DD）");
+      return false;
+  }
+  if(document.getElementById('m_custom_start_date').value.length>0 && commonCkDate(document.getElementById('m_custom_start_date').value)==false){
+      alert("収集開始日の日付形式が正しくありません。（YYYY/MM/DD）");
+      return false;
+  }
+  if(document.getElementById('m_custom_haishi_date').value.length>0 && commonCkDate(document.getElementById('m_custom_haishi_date').value)==false){
+      alert("廃止届出受付日の日付形式が正しくありません。（YYYY/MM/DD）");
+      return false;
+  }
+  if(document.getElementById('m_custom_end_date').value.length>0 && commonCkDate(document.getElementById('m_custom_end_date').value)==false){
+      alert("集配停止日の日付形式が正しくありません。（YYYY/MM/DD）");
+      return false;
+  }
+  if(document.getElementById('m_custom_cust_name').value.indexOf("'")>=0){
+      alert("ステーション名に半角クォーテーションを使用することはできません。");
+      return false;
+  }
+  if(document.getElementById('m_custom_addr_1').value.indexOf("'")>=0){
+      alert("住所に半角クォーテーションを使用することはできません。");
+      return false;
+  }
+  if(document.getElementById('m_custom_addr_2').value.indexOf("'")>=0){
+      alert("アパート・マンション・ビル名に半角クォーテーションを使用することはできません。");
+      return false;
+  }
+  if(document.getElementById('m_custom_memo').value.indexOf("'")>=0){
+      alert("備考に半角クォーテーションを使用することはできません。");
+      return false;
+  }
+
+  var allow_exts = new Array('jpg', 'jpeg', 'png');
+  var ext = getExt(document.getElementById('m_custom_icon').value).toLowerCase();
+
+  //許可する拡張子の一覧(allow_exts)から対象の拡張子があるか確認する
+  if (allow_exts.indexOf(ext) === -1 && ext.length>0){
+    alert("添付画像はjpg、jpeg、pngのみ使用可能です。");
+    return false;
+  }
+
+  document.getElementById('admin_code_chk_').value =document.getElementById('m_custom_admin_code').value;
+  document.getElementById("modal_chk_form_submit").click();
+}
+
+function getExt(filename){
+  var pos = filename.lastIndexOf('.');
+  if (pos === -1) return '';
+  return filename.slice(pos + 1);
+}
+
+//住所から緯度経度取得
+function JlatlngChange(){
+  if(window.confirm('住所から緯度経度情報を取得します。\r\n地図上のマーカー位置も移動されます。\r\n実行してもよろしいですか？')){
+    geocoder = new google.maps.Geocoder();
+    var address = document.getElementById('m_custom_addr_1').value;
+    if (geocoder) {
+      geocoder.geocode( { 'address': address,'region': 'jp'},
+        function(results, status) {
+          if (status == google.maps.GeocoderStatus.OK) {
+            var bounds = new google.maps.LatLngBounds();
+            for (var r in results) {
+              if (results[r].geometry) {
+                //緯度経度取得
+                var latlng = results[r].geometry.location;
+
+                document.getElementById('m_custom_latitude').value =latlng.lat();
+                document.getElementById('m_custom_longitude').value =latlng.lng();
+                //マーカー移動
+                myLatlng = new google.maps.LatLng(latlng.lat(),latlng.lng());
+                marker.setPosition(myLatlng);
+                map.panTo(myLatlng);
+                alert("緯度経度の取得に成功しました。");
+                break;
+              }
+            }
+          }else{
+            alert("緯度経度の取得に失敗しました reason: " + status);
+          }
+        }
+      );
+    }
+  }else{
+    return false;
+  }
+}
+//緯度経度から住所取得
+function JlatlngAddressChange(){
+  if(window.confirm('緯度経度から住所情報を取得します。\r\n実行してもよろしいですか？')){
+    geocoder = new google.maps.Geocoder();
+    var lat = document.getElementById('m_custom_latitude').value;
+    var lng = document.getElementById('m_custom_longitude').value;
+    var latlng = new google.maps.LatLng(lat,lng);
+    if (geocoder) {
+    
+
+  geocoder.geocode({
+    latLng: latlng
+  }, function(results, status) {
+    if (status == google.maps.GeocoderStatus.OK) {
+      if (results[0].geometry) {
+
+          // 住所を取得(日本の場合だけ「日本, 」を削除)
+          document.getElementById('m_custom_addr_1').value = results[0].formatted_address.replace(/^日本、/, '');
+
+      }
+    } else if (status == google.maps.GeocoderStatus.ERROR) {
+      alert("サーバとの通信時に何らかのエラーが発生！");
+    } else if (status == google.maps.GeocoderStatus.INVALID_REQUEST) {
+      alert("リクエストに問題アリ！geocode()に渡すGeocoderRequestを確認せよ！！");
+    } else if (status == google.maps.GeocoderStatus.OVER_QUERY_LIMIT) {
+      alert("短時間にクエリを送りすぎ！落ち着いて！！");
+    } else if (status == google.maps.GeocoderStatus.REQUEST_DENIED) {
+      alert("このページではジオコーダの利用が許可されていない！・・・なぜ！？");
+    } else if (status == google.maps.GeocoderStatus.UNKNOWN_ERROR) {
+      alert("サーバ側でなんらかのトラブルが発生した模様。再挑戦されたし。");
+    } else if (status == google.maps.GeocoderStatus.ZERO_RESULTS) {
+      alert("見つかりません");
+    } else {
+      alert("バージョンアップ？");
+    }
+  });
+
+
+    }
+  }else{
+    return false;
+  }
+}
+
+//モーダルを閉じる
+function modal_close(){
+  window.parent.jQuery('#modal_station_detail_common').dialog('close');
+}
+</script>
+<% end %>

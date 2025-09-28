@@ -1,0 +1,41 @@
+<h1>ステーション情報CSV出力画面</h1>
+
+<div id="cover">
+<%= form_with(url: m_custom_csv_path, method: "post", id: "inputform", html: {name: "inputform"}) do %>
+  <table>
+    <thead>
+    <tr>
+      <th>ステーション名</th>
+      <td><%= text_field 'search_name', 'query', :size => 50, :value => params[:search_name].nil? ? "" : params[:search_name][:query] %></td>
+      <th>ｽﾃｰｼｮﾝｺｰﾄﾞ</th>
+      <td><%= text_field 'search', 'query', :size => 20, :value => params[:search].nil? ? "" : params[:search][:query]  %></td>
+    </tr>
+    <tr>
+      <th>住所</th>
+      <td><%= text_field 'search_addr', 'query', :size => 50, :value => params[:search_addr].nil? ? "" : params[:search_addr][:query] %></td>
+      <th>管理者名</th>
+      <td><%= text_field 'search_admin', 'query', :size => 30, :value => params[:search_admin].nil? ? "" : params[:search_admin][:query] %></td>
+    </tr>
+    <tr>
+      <th>収集区</th>
+      <td colspan=3><%= select 'search_route', 'query', @route_codes, { :include_blank => true, :selected => params[:search].nil? ? "" : params[:search][:query] } %></td>
+    </tr>
+      <tr>
+        <td colspan=4 align=center><input type=button value="CSV出力する" onClick="fcsv_send();" class='btn btn-primary'></td>
+      </tr>
+    </thead>
+  </table>
+<% end %>
+</div>
+<%= content_for :scripts do %>
+  <script type="text/javascript" charset="utf-8">
+    function fcsv_send(){
+      
+      if(window.confirm("CSV出力しますが、よろしいですか？")){
+        document.inputform.submit();
+      }else{
+        return false;
+      }
+    }
+  </script>
+<% end %>

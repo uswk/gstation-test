@@ -1,0 +1,46 @@
+<h1>管理者変更申請一括更新確認画面</h1>
+<%= form_tag("t_change_confirm_admins", method: "post", id: "inputform", name: "inputform") do %>
+  <br>
+  <%= submit_tag "一括更新する", :confirm => '変更申請を一括更新しますが、よろしいですか？', :disable_with=>'一括更新処理中...', :class => 'btn btn-primary' %>
+  &nbsp;&nbsp;
+  <%= link_to_function '戻る', 'history.back()', :class => 'btn' %>
+  <%= hidden_field 'confirm_flg','', :value => "1" %>
+  <br><br>
+  <table>
+    <thead>
+      <tr>
+        <th>管理者ｺｰﾄﾞ</th>
+        <th>管理者名</th>
+        <th>種別</th>
+        <th>地区</th>
+        <th>地区名</th>
+        <th>並び順</th>
+        <th>住所</th>
+        <th>Eメール</th>
+        <th>電話番号</th>
+        <th>FAX番号</th>
+        <th>作成日</th>
+        <th>変更予定日</th>
+      </tr>
+    </thead>
+    <tbody>
+      <% @t_change_shinseis.each do |t_change_shinsei| %>
+          <tr>
+            <td><%= t_change_shinsei.cust_code %></td>
+            <td><%= t_change_shinsei.cust_name %></td>
+            <td><%= t_change_shinsei.admin_type_name %></td>
+            <td><%= t_change_shinsei.district %></td>
+            <td><%= t_change_shinsei.district_name %></td>
+            <td align=right><%= t_change_shinsei.seq %></td>
+            <td><%= (t_change_shinsei.addr_1.to_s + ' ' + t_change_shinsei.addr_2.to_s).strip %></td>
+            <td><%= t_change_shinsei.email %></td>
+            <td><%= t_change_shinsei.tel_no %></td>
+            <td><%= t_change_shinsei.fax_no %></td>
+            <td><%= t_change_shinsei.shinsei_date.strftime("%Y/%m/%d") %></td>
+            <td><%= t_change_shinsei.kibou_date.strftime("%Y/%m/%d") %></td>
+            <%= hidden_field 'shinsei_chk','', :value => t_change_shinsei.id %>
+          </tr>
+      <% end %>
+    </tbody>
+  </table>
+<% end %>

@@ -1,0 +1,173 @@
+<%= form_for(@m_custom,:url => {:controller=>'admins', :action => @action_form}, :html => { :class => @class_form, :id => @class_form }) do |f| %>
+  <% if @m_custom.errors.any? %>
+    <div id="error_explanation">
+      <h2><%= pluralize(@m_custom.errors.count, "error") %> prohibited this m_custom from being saved:</h2>
+
+      <ul>
+      <% @m_custom.errors.full_messages.each do |msg| %>
+        <li><%= msg %></li>
+      <% end %>
+      </ul>
+    </div>
+  <% end %>
+  <table>
+    <thead>
+    <tr>
+      <th width=30%>管理者コード</th>
+      <% if @action_form=='update' %>
+        <td width=70%><%= f.text_field :cust_code, :readonly => true, :disabled => true, :size=>10, :maxlength=>10 %></td>
+      <% else %>
+        <td width=70%><%= f.text_field :cust_code, :size=>10, :maxlength=>10 %></td>
+      <% end %>
+    </tr>
+    <tr>
+      <th>管理者名</th>
+      <td><%= f.text_field :cust_name, :size=>40, :maxlength=>50 %></td>
+    </tr>
+    <tr>
+      <th>管理者種別</th>
+      <td><%= f.select :admin_type, @admin_types, { :include_blank => true}, {:onchange => "fadmin_type_change();"} %></td>
+    </tr>
+    <tr>
+      <th>地区</th>
+      <td><%= f.select :district_code, @districts, { :include_blank => true} %></td>
+    </tr>
+    <tr>
+      <th>地区名</th>
+      <td><%= f.text_field :district_name, :size=>20, :maxlength=>50 %></td>
+    </tr>
+    <tr>
+      <th>並び順</th>
+      <td><%= f.text_field :seq, :size=>6, :maxlength=>5 %></td>
+    </tr>
+    <tr>
+      <th>住所</th>
+      <td><%= f.text_field :addr_1, :size=>60, :maxlength=>100 %></td>
+    </tr>
+    <tr>
+      <th>ｱﾊﾟｰﾄ・ﾏﾝｼｮﾝ・ﾋﾞﾙ名</th>
+      <td><%= f.text_field :addr_2, :size=>60, :maxlength=>100 %></td>
+    </tr>
+    <tr>
+      <th>Ｅメール</th>
+      <td><%= f.text_field :email, :size=>40, :maxlength=>50 %></td>
+    </tr>
+    <tr>
+      <th>電話番号</th>
+      <td><%= f.text_field :tel_no, :size=>20, :maxlength=>13 %></td>
+    </tr>
+    <tr>
+      <th>FAX番号</th>
+      <td><%= f.text_field :fax_no, :size=>20, :maxlength=>13 %></td>
+    </tr>
+    <tr>
+      <th>備考</th>
+      <td><%= f.text_area :memo, :rows=>2, :maxlength=>100 %></td>
+    </tr>
+    <%= hidden_field :m_custom, :delete_flg, :value => @m_custom.delete_flg.nil? ? 0 : @m_custom.delete_flg %>
+    <%= hidden_field :m_custom, :cust_kbn, :value => 2 %>
+    <%= hidden_field :hokan, :min_code, :value => "" %>
+    <%= hidden_field :hokan, :max_code, :value => "" %>
+    <%= hidden_field :hokan, :numbering_flg, :value => 0 %>
+    </thead>
+  </table>
+  <br>
+  <div class="actions">
+    <% if current_user.authority!=9 %>
+      <%= hidden_field_tag :search_mode, @search_mode %>
+      <%= f.submit :"更新", :onclick => ('return fadmins_submit();'), :class => 'btn btn-primary' %>&nbsp;&nbsp;
+    <% end %>
+    <%= link_to '戻る', admins_path(:search_mode=>@search_mode), :class => 'btn btn', :style=>'text-decoration:none;' %>
+  </div>
+<% end %>
+<% content_for :scripts do %>
+  <script type="text/javascript">
+    //更新処理
+    function fadmins_submit(){
+      if (eval(document.getElementById("hokan_numbering_flg").value) == 1){
+        if (document.getElementById("m_custom_cust_code").value.length<=0) {
+          alert("管理者コードは入力必須です。");
+          return false;
+        }
+        //範囲チェック
+        var min_code = document.getElementById("hokan_min_code").value;
+        var max_code = document.getElementById("hokan_max_code").value;
+        var cust_code = document.getElementById("m_custom_cust_code").value;
+        if(cust_code>=min_code && cust_code<=max_code){
+        }else{
+          alert("管理者コードは" + min_code + "～" + max_code + "の範囲から入力してください。");
+          return false;
+        }
+      }
+      if (document.getElementById("m_custom_cust_name").value.length<=0) {
+        alert("管理者名は入力必須です。");
+        return false;
+      }
+      if (document.getElementById("m_custom_admin_type").value.length<=0) {
+        alert("管理者種別は選択必須です。");
+        return false;
+      }
+      if (document.getElementById("m_custom_cust_code").value.match(/[^0-9a-zA-Z_]+/)){
+        alert("管理者コードは半角英数字で入力してください。");
+        return false;
+      }
+      if (isNaN(document.getElementById("m_custom_seq").value)){
+        alert("並び順はは数値を入力してください。");
+        return false;
+      }
+      if (document.getElementById("m_custom_email").value.length>0){
+        if (! document.getElementById("m_custom_email").value.match(/[!#-9A-~]+@[a-z0-9_-]+\.+[a-z0-9_-]+/i)){
+          alert ('Eメールの書式が正しくありません。');
+          return false;
+        }
+      }
+      //if (document.getElementById("m_custom_tel_no").value.length>0){
+      //  if (! document.getElementById("m_custom_tel_no").value.match(/[0-9]{2,5}-[0-9]{1,4}-[0-9]{4}/)){
+      //    alert ('電話番号の書式が正しくありません。\n半角数字と「-」(ハイフン)で入力してください。');
+      //    return false;
+      //  }
+      //}
+      //if (document.getElementById("m_custom_fax_no").value.length>0){
+      //  if (! document.getElementById("m_custom_fax_no").value.match(/[0-9]{2,5}-[0-9]{1,4}-[0-9]{4}/)){
+      //    alert ('FAX番号の書式が正しくありません。\n半角数字と「-」(ハイフン)で入力してください。');
+      //    return false;
+      //  }
+      //}
+
+      if(window.confirm('更新しますがよろしいですか？')){
+        return true;
+      }else{
+        return false;
+      }
+    }
+    //管理者種別変更時
+    function fadmin_type_change(){
+      var admin_type;
+      var numbering_flg = 0;
+      <% if @action_form == 'create' %>
+        <% @numberings.each do |numbering| %>
+          admin_type = <%= numbering.class_code.to_s %>;
+          if(admin_type == document.getElementById("m_custom_admin_type").value){
+            document.getElementById("hokan_min_code").value = "<%= numbering.value.to_s %>";
+            document.getElementById("hokan_max_code").value = "<%= numbering.value2.to_s %>";
+            numbering_flg = 1;
+          }
+        <% end %>
+        if(numbering_flg == 1){
+          document.getElementById("hokan_numbering_flg").value = 1;
+          document.getElementById("m_custom_cust_code").disabled = false;
+        }else{
+          document.getElementById("m_custom_cust_code").value = "";
+          document.getElementById("hokan_min_code").value = "";
+          document.getElementById("hokan_max_code").value = "";
+          document.getElementById("hokan_numbering_flg").value = 0;
+          document.getElementById("m_custom_cust_code").disabled = true;
+        }
+      <% end %>
+    }
+    //リロード時の処理
+    window.onload = function(){
+      fadmin_type_change();
+    }
+  </script>
+<% end %>

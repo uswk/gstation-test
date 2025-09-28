@@ -1,0 +1,602 @@
+<% content_for :scripts do %>
+  <script src="//maps.googleapis.com/maps/api/js?language=ja&key=<%= @map_key %>"></script>
+  <script src="//google-maps-utility-library-v3.googlecode.com/svn/tags/markerclustererplus/2.0.14/src/markerclusterer_packed.js" type="text/javascript"></script>
+  <script type="text/javascript" src="//zapi.znet-town.net/znettown/api/loadapi.php?mobile=0&cnt=1"> </script>
+  <script type="text/javascript" charset="utf-8">
+
+  var marker = new Array();
+  var myLatlng = new google.maps.LatLng("<%= @def_latitude %>","<%= @def_longitude %>");
+  var mapOptions = {
+    auto_zoom: true,
+    zoom: 18,
+    auto_adjust: false,
+    center: myLatlng,
+    gestureHandling: "greedy",
+    mapTypeId: google.maps.MapTypeId.ROADMAP
+  }
+  var map = new google.maps.Map(document.getElementById("map_canvas"), mapOptions);
+
+  //####### ゼンリン住宅地図用 STR ###############################################################
+  var map_zenrin;
+  var geopt;
+  var geom = new Array();
+  var zenrin_content = new Array();
+  var arrIcon = new Array();
+  
+  var geopt_center;
+  var iconOffset_center;
+  var geom_center;
+  
+  //ロード時
+  window.onload = function(){
+    zenrin_map_load(1);
+  };
+
+  //ゼンリン住宅地図ロード（パラメータ　1：画面ロード時、9：ログインのみ）
+  function zenrin_map_load(exchange_kbn){
+    if("<%= @map_zenrin_cid %>"){
+      if (ZntAuth.getStatus()==ZntAuth.STATUS_LOGIN) {
+        //ログイン済みの場合、すぐに地図を表示する。
+        //if(exchange_kbn==1){
+        //  dispMap();
+        //}
+        //ログイン済みの場合、ログアウトして再表示
+        ZntAuth.logout();
+        window.location.reload();
+      } else {
+        //ログインしていない場合、ログインのための設定を行う。
+        //「ログイン」ボタン click イベントハンドラ
+        var cid = "<%= @map_zenrin_cid %>";
+        var uid = "<%= @map_zenrin_uid %>";
+        var pwd = "<%= @map_zenrin_pwd %>";
+        ZntAuth.login(cid, uid, pwd);
+        //login イベントリスナを設定
+        ZntAuth.addEventListener("login", function(result) {
+          if (result=="10100000") {
+            //ログインに成功したら、API 全体のロードを実行。完了すると load イベントが発生する。
+            ZntAuth.loadAPI();
+          } else {
+            //ログインに失敗したらメッセージを表示
+            alert("ログインできませんでした。("+result+")");
+          }
+        }); 
+        //load イベントリスナを設定
+        ZntAuth.addEventListener("load", function(result) {
+          if (result=="19100000") {
+            //ロードに成功したら、地図を表示する
+            if(exchange_kbn==1){
+              dispMap();
+            }
+          } else {
+            //ロードに失敗したらメッセージを表示
+            alert("API をロードできませんでした。("+result+")");
+          }
+        });
+      }
+    }
+  }
+
+  function dispMap(){
+    var arrLat = new Array();
+    var arrLng = new Array();
+    
+    arrLat[0] = Math.round(eval("<%= @def_latitude %>")*3600000);
+    arrLng[0] = Math.round(eval("<%= @def_longitude %>")*3600000);
+    
+    //測地系変換後、地図表示
+    zenrin_world_japan(arrLat, arrLng, 1);
+    
+  };
+  
+  function dispMap2(r){
+    //zenrin_map_load(9); //タイムアウト時はリロード
+    var result = r.result;
+    if (result.status=="80100000"){
+      //設定を収集
+      var w = 1000;
+      var h = 500;
+      var zoom = 12;
+      var viewMode = 1;
+      var dragMode = 2;
+      var loupeMode = 0;
+      var subMapMode = 0;
+      var zenrin_lon = result.items[0].x;
+      var zenrin_lat = result.items[0].y;
+      var opts = new ZntMapOptions();
+
+      //中心点マーカーオプション
+      geopt_center = new ZntMarkerOptions();
+      geopt_center.opacity = 1;
+      geopt_center.visible = true;
+      geopt_center.zIndex = 0;
+
+      //中心点マーカーオフセット
+      iconOffset_center = new ZntPoint();
+      iconOffset_center.x = 5;
+      iconOffset_center.y = -15;
+      geopt_center.iconOffset = iconOffset_center;
+      geopt_center.icon = "images/marker_pin.png";
+
+      // 緯度経度を指定する
+      opts.initPos = new ZntPoint(zenrin_lon,zenrin_lat);
+      // 地図サイズを指定する
+      opts.size = new ZntSize(w,h);
+      // 地図倍率を指定する
+      opts.initZoomLevel = zoom;
+      // 地図表示モードを指定する
+      opts.viewMode = viewMode;
+      // マウスドラッグモードを指定する
+      opts.dragMode = Number(dragMode);
+      // ８方向ボタンを指定する
+      opts.scrollButton = true;
+      // 虫めがねを指定する
+      if( loupeMode == "1" ){
+        opts.loupe = true;
+        opts.loupeOpen = true;
+      }else if( loupeMode == "2" ){
+        opts.loupe = true;
+        opts.loupeOpen = false;
+      }else{
+        opts.loupe = false;
+      }
+      // 広域ミニマップを指定する
+      if( subMapMode == "1" ){
+        opts.subMap = true;
+        opts.subMapOpen = true;
+      }else if( subMapMode == "2" ){
+        opts.subMap = true;
+        opts.subMapOpen = false;
+      }else{
+        opts.subMap = false;
+      }
+
+      //地図の初期化と表示
+      map_zenrin = new ZntMap();
+      map_zenrin.initialize(document.getElementById("mapContainer"), opts);
+      
+      //マーカー表示
+      zenrin_marker_display(zoom, zenrin_lon, zenrin_lat);
+      var drw_pnt= new ZntPoint();
+      drw_pnt.x = zenrin_lon;
+      drw_pnt.y = zenrin_lat;
+      geom_center = new ZntMarker( drw_pnt, geopt_center );
+      map_zenrin.addGeometry(geom_center);
+      //地図移動時にマーカー再表示
+      map_zenrin.addEventListener("extentchange", function(result) {
+        //zenrin_map_load(9); //タイムアウト時はリロード
+        zenrin_marker_display(result.zoom, result.pos.x, result.pos.y);
+        
+        //中心マーカー表示
+        map_zenrin.removeGeometry(geom_center);
+
+        var drw_pnt= new ZntPoint();
+        drw_pnt.x = result.pos.x;
+        drw_pnt.y = result.pos.y;
+        geom_center = new ZntMarker( drw_pnt, geopt_center );
+        map_zenrin.addGeometry(geom_center);
+      });
+    }else{
+      alert("緯度経度の変換に失敗しました。("+result.status+")");
+    }
+  }
+  
+  //マーカー表示
+  function zenrin_marker_display(zoom, pos_x, pos_y){
+    //マーカークリア
+    for(var i = 0; i < geom.length; i++){
+      map_zenrin.removeGeometry(geom[i]);
+    }
+    //表示サイズが10以上の場合マーカー表示
+    if(zoom>=10){
+      var adjust_size = 5000;
+      switch(zoom){
+        case 10:
+          adjust_size = 25000;
+          break;
+        case 11:
+          adjust_size = 15000;
+          break;
+        case 12:
+          adjust_size = 10000;
+          break;
+        case 13:
+          adjust_size = 7500;
+          break;
+        case 14:
+          adjust_size = 6000;
+          break;
+      }
+      document.getElementById("span_zenrin_station_display").style.display="none";
+      
+      var arrLat = new Array();
+      var arrLng = new Array();
+      arrLat[0] = pos_y + adjust_size;
+      arrLng[0] = pos_x + adjust_size;
+      arrLat[1] = pos_y - adjust_size;
+      arrLng[1] = pos_x - adjust_size;
+      zenrin_japan_world(arrLat, arrLng, 1);
+    }else{
+      document.getElementById("span_zenrin_station_display").style.display="";
+    }
+    $("#span_map_zenrin_zoom_size").html(zoom);
+  }
+  function zenrin_marker_display2(r){
+    //zenrin_map_load(9); //タイムアウト時はリロード
+    var result = r.result;
+    if (result.status=="80100000"){
+      document.getElementById("northeast_lat_").value = result.items[0].y/3600000;
+      document.getElementById("northeast_lng_").value = result.items[0].x/3600000;
+      document.getElementById("southwest_lat_").value = result.items[1].y/3600000;
+      document.getElementById("southwest_lng_").value = result.items[1].x/3600000;
+      document.getElementById("map_type").value = 2;
+      //再読み込み
+      document.querySelector("#marker_form input[type=submit]").click();
+    }else{
+      alert("緯度経度の変換に失敗しました。("+result.status+")");
+    }
+  }
+  
+  //ゼンリン住所検索
+  function ZenrincodeAddress(){
+    
+    if(document.getElementById("search_zenrin_address").value=="" && document.getElementById("search_zenrin_keyword").value!=""){
+      alert("キーワード入力時は住所も入力してください。");
+      return;
+    }
+    // 検索オブジェクトと検索条件指定オブジェクトを生成する
+    var search_sear = new ZntAddressSearch();
+    var search_opts = new ZntAddressSearchSettings();
+    
+    search_opts.freeWord = document.getElementById("search_zenrin_address").value;
+    
+    // 検索を実施する
+    search_sear.search(search_opts);
+
+    //検索処理が完了したら結果を表示する。
+    search_sear.addEventListener("receive", zenrin_address_search, 0);
+  }
+  
+  //ゼンリン住所検索
+  function zenrin_address_search(r){
+    //zenrin_map_load(9); //タイムアウト時はリロード
+    var result = r.result;
+    if (result.status=="30200000"){
+      if(result.itemsAddr[0]){
+        if(document.getElementById("search_zenrin_keyword").value==""){
+          map_zenrin.moveTo(new ZntPoint(result.itemsAddr[0].pos.x, result.itemsAddr[0].pos.y));
+        }else{  //キーワードがある場合
+          if(document.getElementById("keyword1").checked){
+            var keyword_sear = new ZntBuildingSearch();
+            var keyword_opts = new ZntBuildingSearchSettings();
+
+            keyword_opts.addrCode = result.itemsAddr[0].addrCode;
+            keyword_opts.type = "1111";
+            keyword_opts.bekki = true;
+            // 検索文字列を指定する
+            keyword_opts.matchRule = 2;
+            keyword_opts.freeWord = document.getElementById("search_zenrin_keyword").value;
+          }else if(document.getElementById("keyword2").checked){
+            var keyword_sear = new ZntPoiSearch();
+            var keyword_opts = new ZntPoiSearchSettings();
+            
+            keyword_opts.prefCode = result.itemsAddr[0].addrCode.substr(0,2);
+            keyword_opts.genreMenuCode = "00000";
+            keyword_opts.genreCode = "00000";
+            keyword_opts.freeWord = document.getElementById("search_zenrin_keyword").value;
+          }else if(document.getElementById("keyword3").checked){
+            var keyword_sear = new ZntTelePointSearch();
+            var keyword_opts = new ZntTelePointSearchSettings();
+            
+            keyword_opts.sort = "1";
+            keyword_opts.prefCode = result.itemsAddr[0].addrCode.substr(0,2);
+            keyword_opts.telNum = document.getElementById("search_zenrin_keyword").value;
+          }
+          
+          // 開始位置を指定する
+          keyword_opts.startPos = 1;
+          // 最大件数を設定する
+          keyword_opts.maxCount = 1000;
+          
+          // 検索を実施する
+          keyword_sear.search(keyword_opts);
+
+          //検索処理が完了したら結果を表示する。
+          keyword_sear.addEventListener("receive", zenrin_keyword_search, 0);
+        }
+      }else{
+        alert("検索に失敗しました。("+result.status+")");
+      }
+    }else{
+      alert("検索に失敗しました。("+result.status+")");
+    }
+  }
+  //ゼンリンキーワード検索
+  function zenrin_keyword_search(r){
+    //zenrin_map_load(9); //タイムアウト時はリロード
+    var result = r.result;
+    if (result.status=="31200000" || result.status=="30800000" || result.status=="31400000"){
+      var iCount = result.recCount;
+      var jCount=0;
+      if(iCount>0){
+        $('#modal_keyword_detail').dialog({
+          title: "キーワード検索一覧　",
+          modal: true,
+          show : "fade",
+          hide : "fade",
+          width: 800,
+          height: 500,
+          open:function(event, ui){ 
+            $(".ui-dialog-titlebar-close").show();
+          }
+        });
+        $("div#overflow").remove();
+        var strHtml = "<div id='overflow' style='overflow: scroll; height:50vh;'>";
+        strHtml += "<table>";
+        strHtml += "<thead>";
+        strHtml += "<tr>";
+        strHtml += "<th>&nbsp;</th>";
+        if(document.getElementById("keyword1").checked){
+          strHtml += "<th>基本名称</th>";
+          strHtml += "<th>別記名称</th>";
+          strHtml += "<th>住所</th>";
+          strHtml += "<th>建物の部屋数</th>";
+          strHtml += "<th>階数種別</th>";
+          strHtml += "<th>階数</th>";
+          strHtml += "<th>部屋番号</th>";
+        }else if(document.getElementById("keyword2").checked){
+          strHtml += "<th>名称</th>";
+          strHtml += "<th>住所</th>";
+        }else if(document.getElementById("keyword3").checked){
+          strHtml += "<th>名称</th>";
+          strHtml += "<th>電話番号</th>";
+          strHtml += "<th>住所</th>";
+        }
+        strHtml += "</tr>";
+        strHtml += "</thead>";
+        
+        while(jCount<iCount){
+          strHtml += "<tr>";
+          strHtml += "<td><input type='button' value='選択' class='btn btn-mini' onclick=zenrin_search_move('" + result.items[jCount].pos.x + "','" + result.items[jCount].pos.y + "')></td>";
+          if(document.getElementById("keyword1").checked){
+            strHtml += "<td>" + result.items[jCount].name1 + "</td>";
+            strHtml += "<td>" + result.items[jCount].name2 + "</td>";
+            strHtml += "<td>" + result.items[jCount].address + "</td>";
+            strHtml += "<td>" + result.items[jCount].roomCount + "</td>";
+            strHtml += "<td>" + result.items[jCount].floorType + "</td>";
+            strHtml += "<td>" + result.items[jCount].floor + "</td>";
+            strHtml += "<td>" + result.items[jCount].roomNumber + "</td>";
+          }else if(document.getElementById("keyword2").checked){
+            strHtml += "<td>" + result.items[jCount].name + "</td>";
+            strHtml += "<td>" + result.items[jCount].address + "</td>";
+          }else if(document.getElementById("keyword3").checked){
+            strHtml += "<td>" + result.items[jCount].name + "</td>";
+            strHtml += "<td>" + result.items[jCount].telNum + "</td>";
+            strHtml += "<td>" + result.items[jCount].address + "</td>";
+          }
+          strHtml += "</tr>";
+          jCount++;
+        }
+        strHtml += "</table>";
+        strHtml += "</div>";
+        $("#tag_sub").after(strHtml);
+      }else{
+        alert("条件に該当しませんでした。");
+      }
+    }else{
+      if(result.status=="31413003"){
+        alert("現在電話番号検索を使用することはできません。("+result.status+")");
+      }else{
+        alert("検索に失敗しました。("+result.status+")");
+      }
+    }
+  }
+  
+  //ゼンリンキーワード検索後移動
+  function zenrin_search_move(posx, posy){
+    map_zenrin.moveTo(new ZntPoint(posx, posy));
+    $('#modal_keyword_detail').dialog("close");
+  }
+  
+  //測地系変換（世界測地系→日本測地系）（※緯度経度はミリ秒で渡す）
+  function zenrin_world_japan(lat, lng, out_type){
+    // 検索オブジェクトと検索条件指定オブジェクトを生成する
+    var sear = new ZntGisTrans();
+    var opts = new ZntGisTransSettings();
+
+    opts.in_crs = "EPSG:4612";
+    opts.out_crs = "EPSG:4301";
+    opts.pam = "N";
+
+    //緯度経度を保持する配列
+    var coords = new Array();
+    
+    for(var i = 0; i < lat.length; i++){
+      coords[i] = new ZntPoint(eval(lng[i]), eval(lat[i]));
+    }
+
+    // 経度緯度を指定する
+    opts.points = coords;
+
+    // 検索を実施する
+    ret = sear.search(opts);
+
+    //検索処理が完了したら結果を表示する。
+    
+    switch(out_type){
+      case 1:
+        sear.addEventListener("receive", dispMap2, 0);
+        break;
+      case 2:
+        sear.addEventListener("receive", map_change_zenrin, 0);
+        break;
+      case 3:
+        sear.addEventListener("receive", marker_change_zenrin, 0);
+        break;
+    }
+  }
+  
+  //測地系変換（日本測地系→世界測地系）（※緯度経度はミリ秒で渡す）
+  function zenrin_japan_world(lat, lng, out_type){
+    // 検索オブジェクトと検索条件指定オブジェクトを生成する
+    var sear = new ZntGisTrans();
+    var opts = new ZntGisTransSettings();
+
+    opts.in_crs = "EPSG:4301";
+    opts.out_crs = "EPSG:4612";
+    opts.pam = "N";
+
+    //緯度経度を保持する配列
+    var coords = new Array();
+    
+    for(var i = 0; i < lat.length; i++){
+      coords[i] = new ZntPoint(eval(lng[i]), eval(lat[i]));
+    }
+    
+    // 経度緯度を指定する
+    opts.points = coords;
+
+    // 検索を実施する
+    ret = sear.search(opts);
+
+    //検索処理が完了したら結果を表示する。
+    
+    switch(out_type){
+      case 1:
+        sear.addEventListener("receive", zenrin_marker_display2, 0);
+        break;
+      case 2:
+        sear.addEventListener("receive", map_change_google, 0);
+        break;
+    }
+  }
+  
+  //地図切替
+  function map_change(){
+    if(document.getElementById("mapChange").value=="GoogleMapに切替"){
+      //GoogleMapへ切替
+      document.getElementById("mapChange").value = "ゼンリン住宅地図に切替";
+      document.getElementById("id_google_map_display").style.visibility="visible";
+      document.getElementById("id_zenrin_map_display").style.display="none";
+      //緯度経度変換
+      var arrLat = new Array();
+      var arrLng = new Array();
+      arrLat[0] = map_zenrin.getCenterPos().y;
+      arrLng[0] = map_zenrin.getCenterPos().x;
+      zenrin_japan_world(arrLat, arrLng, 2);
+    }else{
+      //ゼンリン地図へ切替
+      document.getElementById("mapChange").value = "GoogleMapに切替";
+      document.getElementById("id_google_map_display").style.visibility="hidden";
+      document.getElementById("id_zenrin_map_display").style.display="";
+      //緯度経度変換
+      var arrLat = new Array();
+      var arrLng  = new Array();
+      arrLat[0] = Math.round(map.center.lat()*3600000);
+      arrLng[0] = Math.round(map.center.lng()*3600000);
+      zenrin_world_japan(arrLat, arrLng, 2);
+    }
+  }
+  //ゼンリン地図へ切替
+  function map_change_zenrin(r){
+    //zenrin_map_load(9); //タイムアウト時はリロード
+    var result = r.result;
+    if (result.status=="80100000"){
+      var zenrin_lon = result.items[0].x;
+      var zenrin_lat = result.items[0].y;
+      map_zenrin.moveTo(new ZntPoint(zenrin_lon, zenrin_lat));
+    }else{
+      alert("緯度経度の変換に失敗しました。("+result.status+")");
+    }
+  }
+  //GoogleMapへ切替
+  function map_change_google(r){
+    //zenrin_map_load(9); //タイムアウト時はリロード
+    var result = r.result;
+    if (result.status=="80100000"){
+      var zenrin_lon = result.items[0].x/3600000;
+      var zenrin_lat = result.items[0].y/3600000;
+      map.setCenter(new google.maps.LatLng(zenrin_lat,zenrin_lon));
+    }else{
+      alert("緯度経度の変換に失敗しました。("+result.status+")");
+    }
+  }
+  function marker_change_zenrin(r){
+    var result = r.result;
+    if (result.status=="80100000"){
+      for(var seq_id = 0; seq_id < result.pointCnt; seq_id++){
+        //描画点
+        var drw_pnt= new ZntPoint();
+        drw_pnt.x = result.items[seq_id].x;
+        drw_pnt.y = result.items[seq_id].y;
+        
+        geopt.zIndex = seq_id;
+
+        //マーカーを追加
+        geopt.icon = arrIcon[seq_id];
+        geom[seq_id] = new ZntMarker( drw_pnt, geopt );
+        map_zenrin.addGeometry(geom[seq_id]);
+        geom[seq_id].className = seq_id;
+
+        //マーカークリック時
+        geom[seq_id].addEventListener("click", function(result) {
+          //zenrin_map_load(9); //タイムアウト時はリロード
+          geom[result.geometry.className].openPopup(zenrin_content[result.geometry.className]);
+        });
+      }
+    }else{
+      alert("緯度経度の変換に失敗しました。("+result.status+")");
+    }
+  }
+  
+  //地図再表示
+  function JmapDisplayBlock(){
+    //zenrin_map_load(9); //タイムアウト時はリロード
+    zenrin_marker_display(map_zenrin.getZoomLevel(), map_zenrin.getCenterPos().x, map_zenrin.getCenterPos().y);
+  }
+  //画面再表示
+  function map_reload(){
+    if (confirm("地図を再表示しますが、よろしいですか？")){
+      window.location.reload();
+    }
+  }
+  
+  //ゼンリン地図仕様時は画面遷移時にログアウトする
+  window.onbeforeunload = function(e) {
+    if("<%= @map_zenrin_cid %>"){
+      if (ZntAuth.getStatus()==ZntAuth.STATUS_LOGIN) {
+        ZntAuth.logout();
+      }
+    }
+  };
+
+  //####### ゼンリン住宅地図用 END ###############################################################
+
+  //地図移動時
+  google.maps.event.addListener(map, 'idle', function(object) {
+    //マーカークリア
+    for(var i = 0; i < marker.length; i++){
+      marker[i].setMap(null);
+    }
+    //表示サイズが16以上の場合マーカー表示
+    if(map.zoom>=16){
+      $('#layer').show();
+      document.getElementById("span_station_display").style.display="none";
+      //緯度経度取得
+      document.getElementById("northeast_lat_").value =map.getBounds().getNorthEast().lat();
+      document.getElementById("southwest_lat_").value =map.getBounds().getSouthWest().lat();
+      document.getElementById("northeast_lng_").value =map.getBounds().getNorthEast().lng();
+      document.getElementById("southwest_lng_").value =map.getBounds().getSouthWest().lng();
+      document.getElementById("map_type").value = 1;
+      //再読み込み
+      document.querySelector("#marker_form input[type=submit]").click();
+    }else{
+      document.getElementById("span_station_display").style.display="";
+    }
+    $("#span_map_zoom_size").html(map.zoom);
+  });
+  
+  function call_vb_sub(){
+    window.external.CallFromJavascript(map.getCenter().lat(), map.getCenter().lng());
+  }
+  </script>
+<% end %>

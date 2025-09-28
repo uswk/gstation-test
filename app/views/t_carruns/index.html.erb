@@ -1,0 +1,153 @@
+<% content_for :body_attributes do %>
+  data-turbo="false"
+<% end %>
+<% content_for :js do %>
+  <%= javascript_include_tag 'common' %>
+<% end %>
+
+<h1>運転日報一覧画面</h1>
+<%= form_tag("t_carruns", method: "get") do %>
+  <table>
+    <thead>
+      <tr>
+        <th>収集区</th>
+        <td><%= select 'search', 'route', @route_codes, { :include_blank => true, :selected => @routecode.blank? ? "" : @routecode} %></td>
+        <th>出庫日</th>
+        <td>
+          <%= text_field 'search', 'date_from', :class => 'datepicker', :size => 10, :maxlength => 10, :value => @outdate_from.blank? ? Date.today.try(:strftime, "%Y/%m/%d") : @outdate_from %>
+          ～
+          <%= text_field 'search', 'date_to', :class => 'datepicker', :size => 10, :maxlength => 10, :value => @outdate_to.blank? ? Date.today.try(:strftime, "%Y/%m/%d") : @outdate_to %>
+        </td>
+      </tr>
+      <% if current_user.itaku_code.blank? %>
+        <th>委託会社</th>
+        <td colspan=3><%= select 'search', 'itaku', @itaku_codes, { :include_blank => true, :selected => @itakucode.blank? ? "" : @itakucode} %></td>
+      <% end %>
+      <tr>
+        <td align=center colspan=4><%= submit_tag "検索", :class => 'btn btn-light' %></td>
+      </tr>
+    </thead>
+  </table>
+<% end %>
+<br>
+<% if current_user.authority!=9 %>
+  <!-- <input type=button value='追加' onClick=fcarrun_add_button(); class='btn btn-primary'> -->
+  <input type=button value='追加' onClick=JCarrunAdd(); class='btn btn-primary'><br>
+<% end %>
+<%= hidden_field_tag :hold_params, 1 %>
+<%= hidden_field_tag :search_page, params[:page].to_s %>
+<%= hidden_field_tag :outdate_from, @outdate_from.to_s %>
+<%= hidden_field_tag :outdate_to, @outdate_to.to_s %>
+<%= hidden_field_tag :routecode, @routecode.to_s %>
+<%= hidden_field_tag :itakucode, @itakucode.to_s %>
+<br>
+<%= paginate(@t_carruns) %>
+<table>
+  <thead>
+    <tr>
+      <% if current_user.itaku_code.blank? %>
+        <th>委託会社</th>
+      <% end %>
+      <th>車両</th>
+      <th>乗務員</th>
+      <th>収集区</th>
+      <th>出庫日時</th>
+      <th>帰庫日時</th>
+      <th></th>
+      <th></th>
+      <% if current_user.authority!=9 %>
+        <th></th>
+        <th></th>
+      <% end %>
+    </tr>
+  </thead>
+
+  <tbody>
+    <% @t_carruns.each do |t_carrun| %>
+      <tr>
+        <% if current_user.itaku_code.blank? %>
+          <td><%= t_carrun.itaku_name %></td>
+        <% end %>
+        <td><%= t_carrun.car_reg_code %></td>
+        <td><%= t_carrun.driver_name %></td>
+        <td><%= t_carrun.route_name %></td>
+        <td><%= t_carrun.out_timing.try(:strftime, "%Y/%m/%d %H:%M:%S") %></td>
+        <td><%= t_carrun.in_timing.try(:strftime, "%Y/%m/%d %H:%M:%S") %></td>
+        <% @url_path = t_collect_lists_path.to_s + "/" + t_carrun.id.to_s %>
+        <td><%= link_to '出力', @url_path, :class => 'btn btn-mini' %></td>
+        <td><%= link_to '詳細', t_carrun_path(t_carrun.id, :search_page=>params[:page], :outdate_from => @outdate_from, :outdate_to => @outdate_to, :routecode=>@routecode, :itakucode=>@itakucode), :class => 'btn btn-mini' %></td>
+        <% if current_user.authority!=9 %>
+          <% if !t_carrun.input_flg.blank? || !t_carrun.in_timing.blank? || current_user.authority==1 %>
+            <td><%= link_to '編集', t_collect_lists_path(:id => t_carrun.id, :search_page=>params[:page], :outdate_from => @outdate_from, :outdate_to => @outdate_to, :routecode=>@routecode, :itakucode=>@itakucode), :class => 'btn btn-mini' %></td>
+            <td><%= link_to '削除', t_carrun_path(t_carrun, :hold_params=>1,:search_page=>params[:page],:search_outdate_from=>@outdate_from,:search_outdate_to=>@outdate_to,:search_routecode=>@routecode,:search_itakucode=>@itakucode), method: :delete, data: { confirm: '削除しますがよろしいですか?' }, :style=>"color:white;", :class => 'btn btn-mini btn-danger' %></td>
+          <% else %>
+            <td></td>
+            <td></td>
+          <% end %>
+        <% end %>
+      </tr>
+    <% end %>
+  </tbody>
+</table>
+<div id="modal_carrun" style="display:none;">
+  <form action="t_collect_lists" id="add_form" name="add_form" method="get">
+    <table>
+      <thead>
+        <tr>
+          <th>収集区</th>
+          <td><%= select :add, :route_code, @route_codes, { :include_blank => true} %></td>
+        </tr>
+        <tr>
+          <th>出庫日時</th>
+          <td><%= text_field :add, :out_timing, :maxlength=>19, :size=>20, :class => 'timepicker' %></td>
+        </tr>
+        <tr>
+          <th>車両</th>
+          <td><%= select :add, :car_code, @car_codes, { :include_blank => true} %></td>
+        </tr>
+      </thead>
+    </table>
+    <br>
+    &nbsp;<%= button_tag '次へ進む', :type => 'button', :class => 'btn btn-primary', :onclick => 'JCarrunCheck();' %>
+    <%= hidden_field_tag :hold_params, 1 %>
+    <%= hidden_field_tag :search_page, params[:page].to_s %>
+    <%= hidden_field_tag :outdate_from, @outdate_from.to_s %>
+    <%= hidden_field_tag :outdate_to, @outdate_to.to_s %>
+    <%= hidden_field_tag :routecode, @routecode.to_s %>
+    <%= hidden_field_tag :itakucode, @itakucode.to_s %>
+  </form>
+</div>
+<% content_for :scripts do %>
+<script type="text/javascript" charset="utf-8">
+  function JCarrunAdd(){
+    $('#modal_carrun').dialog({
+      title: "日報追加情報入力　",
+      modal: true,
+      show : "fade",
+      hide : "fade",
+      width: 500,
+      height: 300,
+    });
+  }
+  function JCarrunCheck(){
+    //エラーチェック
+    if(document.getElementById("add_route_code").selectedIndex==0){
+      alert("収集区を選択してください。");
+      return false;
+    }
+    if (document.getElementById("add_out_timing").value.length<=0) {
+      alert("出庫日時は入力必須です。");
+      return false;
+    }
+    if (commonCkDateTime(document.getElementById("add_out_timing").value)==false) {
+      alert("出庫日時の形式が正しくありません。（yyyy/mm/dd hh:mm:ss）");
+      return false;
+    }
+    if(document.getElementById("add_car_code").selectedIndex==0){
+      alert("車両を選択してください。");
+      return false;
+    }
+     document.add_form.submit();
+  }
+</script>
+<% end %>

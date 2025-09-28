@@ -1,0 +1,54 @@
+<table style="border:hidden;" width="700px">
+  <tr>
+    <td align=center>
+      <img border=1 src="http://maps.googleapis.com/maps/api/staticmap?center=<%= @center_lat %>,<%= @center_lng %><%= @marker %>&zoom=<%= @zoom %>&maptype=<%= @maptype %>&size=700x500&language=ja&key=<%= @map_key %>">
+    </td>
+  </tr>
+</table>
+<br><br>
+<table width="700px">
+  <thead>
+    <tr>
+      <th>No</th>
+      <th>ステーション名／収集地区</th>
+      <th>管理者名</th>
+      <th>電話番号</th>
+    </tr>
+  </thead>
+<% @iCount = 1 %>
+<% @m_customs.each do |m_custom| %>
+  <% @m_routes = MRoute.joins("inner join m_route_points mrp on mrp.route_code=m_routes.route_code").where("m_routes.delete_flg=0 and mrp.cust_kbn=? and mrp.cust_code=?", m_custom.cust_kbn, m_custom.cust_code).order("m_routes.id") %>
+  <tr>
+    <td rowspan=<%= @m_routes.count.to_i + 1 %> align=right><%= @iCount %></td>
+    <td><%= m_custom.cust_name %></td>
+    <td nowrap><%= m_custom.admin_name %></td>
+    <td nowrap><%= m_custom.admin_tel %></td>
+  </tr>
+  <% @m_routes.each do |m_route| %>
+    <tr>
+      <td><%= m_route.route_code + ':' + m_route.route_name %></td>
+      <td colspan=2 nowrap>
+        <% @item_kbn = "" %>
+        <% @rundate_count = 1 %>
+        <% @m_route_rundates = MRouteRundate.joins("left join m_combos week on week.class_1='#{G_WEEK_CLASS_1}' and week.class_2=0 and week.class_code=m_route_rundates.run_week").joins("left join m_combos yobi on yobi.class_1='#{G_YOBI_CLASS_1}' and yobi.class_2=0 and yobi.class_code=m_route_rundates.run_yobi").joins("left join m_combos item on item.class_1='#{G_ITEM_CLASS_1}' and item.class_2=0 and item.class_code=m_route_rundates.item_kbn").where("m_route_rundates.route_code=?", m_route.route_code).select("m_route_rundates.*, week.class_name as week_name, yobi.class_name as yobi_name, item.class_name as item_name").order("m_route_rundates.item_kbn, m_route_rundates.tree_no") %>
+        <% @m_route_rundates.each do |m_route_rundate| %>
+          <% if @item_kbn == m_route_rundate.item_kbn.to_s %>
+            、<%= m_route_rundate.week_name %><%= m_route_rundate.yobi_name %>
+          <% else %>
+            <% @item_kbn = m_route_rundate.item_kbn.to_s %>
+            <% if @rundate_count > 1 %>
+              <br>
+            <% end %>
+            <%= m_route_rundate.item_name %>　<%= m_route_rundate.week_name %><%= m_route_rundate.yobi_name %>
+          <% end %>
+          <% @rundate_count = @rundate_count + 1 %>
+        <% end %>
+      </td>
+    </tr>
+  <% end %>
+  <% @iCount = @iCount + 1 %>
+<% end %>
+</table>
+<style type="text/css">
+  <%= wicked_pdf_stylesheet_link_tag "main" %>
+</style>

@@ -1,0 +1,125 @@
+<% content_for :head do %>
+  <meta name="turbo-prefetch" content="false">
+<% end %>
+<% content_for :body_attributes do %>
+  data-turbo="false"
+<% end %>
+<h1><%=t".title"%></h1>
+<%= form_tag("m_routes", method: "get") do %>
+  <table>
+    <thead>
+      <tr>
+        <th>収集区コード</th>
+        <td><%= text_field 'search', 'route_code', :value => @routecode.blank? ? "" : @routecode %></td>
+        <th>収集区名称</th>
+        <td><%= text_field 'search', 'route_name', :value => @routename.blank? ? "" : @routename %></td>
+      </tr>
+      <% if current_user.itaku_code.blank? %>
+        <th>委託会社</th>
+        <td colspan=3><%= select 'search', 'itaku', @itaku_codes, { :include_blank => true, :selected => @itakucode.blank? ? "" : @itakucode} %></td>
+      <% end %>
+      <tr>
+        <th>削除のみ ： <%= check_box 'search', 'delete', {:checked => @blndelete} %></th>
+        <td align=center colspan=3>
+          <%= submit_tag "検索", :class => 'btn btn-light' %>
+          &nbsp;&nbsp;
+          <%= button_tag "Excel出力", :type=>'button', :class => 'btn btn-info', :onclick => 'return froute_excel();' %>
+        </td>
+      </tr>
+    </thead>
+  </table>
+<% end %>
+<br>
+<% if current_user.authority!=9 %>
+  <%= link_to '追加', new_m_route_path(:search_page=>params[:page], :search_routecode=>@routecode, :search_routename=>@routename, :search_itaku=>@itakucode, :search_delete=>@deleteflg), :style=>"color:white; text-decoration:none;", :class => 'btn btn-primary' %>
+  <br><br>
+<% end %>
+<%= paginate(@m_routes) %>
+<table>
+  <thead>
+    <tr>
+      <th>収集区コード</th>
+      <th>収集区名称</th>
+      <% if current_user.itaku_code.blank? %>
+        <th>委託会社</th>
+      <% end %>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <% if current_user.authority!=9 %>
+        <th></th>
+        <th></th>
+        <th></th>
+      <% end %>
+    </tr>
+  </thead>
+
+  <tbody>
+    <% @m_routes.each do |m_route| %>
+      <tr>
+        <td <%= @bgcolor_td %>><%= m_route.route_code %></td>
+        <td <%= @bgcolor_td %>><%= m_route.route_name %></td>
+        <% if current_user.itaku_code.blank? %>
+          <td <%= @bgcolor_td %>><%= m_route.itaku_name %></td>
+        <% end %>
+        <td <%= @bgcolor_td %>><%= link_to 'ステーション', m_route_points_path(:routecode => m_route.route_code, :search_page=>params[:page], :search_routecode=>@routecode, :search_routename=>@routename, :search_itaku=>@itakucode, :search_delete=>@deleteflg), :class => 'btn btn-light btn-sm' %></td>
+        <td <%= @bgcolor_td %>><%= link_to 'エリア', m_route_areas_path(:routecode => m_route.route_code, :search_page=>params[:page], :search_routecode=>@routecode, :search_routename=>@routename, :search_itaku=>@itakucode, :search_delete=>@deleteflg), :class => 'btn btn-light btn-sm' %></td>
+        <td <%= @bgcolor_td %>><%= link_to '推奨ﾙｰﾄ', m_route_recommends_path(:routecode => m_route.route_code, :search_page=>params[:page], :search_routecode=>@routecode, :search_routename=>@routename, :search_itaku=>@itakucode, :search_delete=>@deleteflg), :class => 'btn btn-light btn-sm' %></td>
+        <% @url_path = m_route_points_path.to_s + "/" + m_route.id.to_s %>
+        <td <%= @bgcolor_td %>><%= link_to '出力', @url_path, :class => 'btn btn-sm btn-light' %></td>
+        <td <%= @bgcolor_td %>><%= link_to '詳細', m_route_path(m_route, :search_page=>params[:page], :search_routecode=>@routecode, :search_routename=>@routename, :search_itaku=>@itakucode, :search_delete=>@deleteflg), :class => 'btn btn-light btn-sm' %></td>
+        <% if current_user.authority!=9 %>
+          <td <%= @bgcolor_td %>><%= link_to '編集', edit_m_route_path(m_route, :search_page=>params[:page], :search_routecode=>@routecode, :search_routename=>@routename, :search_itaku=>@itakucode, :search_delete=>@deleteflg), :class => 'btn btn-light btn-sm' %></td>
+          <td <%= @bgcolor_td %>><%= link_to 'コピー', new_m_route_path(:routecode => m_route.route_code, :edit_type => "copy", :search_page=>params[:page], :search_routecode=>@routecode, :search_routename=>@routename, :search_itaku=>@itakucode, :search_delete=>@deleteflg), :class => 'btn btn-light btn-sm' %></td>
+          <% if @blndelete == false %>
+            <% @delete_txt = "削除" %>
+          <% else %>
+            <% @delete_txt = "復活" %>
+          <% end %>
+          <td <%= @bgcolor_td %>>
+            <% if current_user.itaku_code.blank? || m_route.itaku_count.blank? %>
+              <%= link_to @delete_txt,
+                      m_route_path(m_route, :hold_params=>1, :search_page=>params[:page], :search_routecode=>@routecode, :search_routename=>@routename, :search_itaku=>@itakucode, :search_delete=>@deleteflg),
+                      :method => :delete,
+                      :data => { :confirm => @delete_txt.to_s + 'しますがよろしいですか?'},
+                      :style=>'color:white;', :class => 'btn btn-sm btn-danger' %>
+            <% end %>
+          </td>
+        <% end %>
+      </tr>
+    <% end %>
+  </tbody>
+</table>
+<%= form_tag("m_routes", method: "post", :name => "excel_form", :id=>"excel_form") do %>
+  <%= hidden_field_tag :excel_output, 1 %>
+  <%= hidden_field_tag :excel_route_code %>
+  <%= hidden_field_tag :excel_route_name %>
+  <%= hidden_field_tag :excel_itaku_code %>
+  <%= hidden_field_tag :excel_delete_flg %>
+<% end %>
+<% content_for :scripts do %>
+<script type="text/javascript" charset="utf-8">
+  function froute_excel(){
+    if (confirm("Excelで出力しますが、よろしいですか？")){
+      document.getElementById("excel_route_code").value = document.getElementById("search_route_code").value;
+      document.getElementById("excel_route_name").value = document.getElementById("search_route_name").value;
+      if(document.getElementById("search_itaku")){
+        document.getElementById("excel_itaku_code").value = document.getElementById("search_itaku").value;
+      }else{
+        document.getElementById("excel_itaku_code").value = "";
+      }
+    if(document.getElementById("search_delete").checked){
+      document.getElementById("excel_delete_flg").value = 1;
+    }else{
+      document.getElementById("excel_delete_flg").value = 0;
+    }
+      $('#excel_form').submit();
+      return true;
+    }else{
+      return false;
+    }
+  }
+</script>
+<% end %>

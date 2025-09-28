@@ -1,0 +1,72 @@
+<%= form_for(@m_driver) do |f| %>
+  <% if @m_driver.errors.any? %>
+    <div id="error_explanation">
+      <h2><%= pluralize(@m_driver.errors.count, "error") %> prohibited this m_driver from being saved:</h2>
+
+      <ul>
+      <% @m_driver.errors.full_messages.each do |msg| %>
+        <li><%= msg %></li>
+      <% end %>
+      </ul>
+    </div>
+  <% end %>
+  <table>
+    <thead>
+    <tr>
+      <th width=30%>運転者コード</th>
+      <% if @action_form=='update' %>
+        <td width=70%><%= f.text_field :driver_code, :readonly => true, :disabled => true, :maxlength=>10 %></td>
+      <% else %>
+        <td width=70%><%= f.text_field :driver_code, :maxlength=>10 %></td>
+      <% end %>
+    </tr>
+    <tr>
+      <th>運転者名</th>
+      <td><%= f.text_field :driver_name, :maxlength=>20 %></td>
+    </tr>
+    <tr>
+      <th>部署</th>
+      <td><%= f.select :section_code, @section_codes, { :include_blank => true} %></td>
+    </tr>
+    <tr>
+      <th>委託会社</th>
+      <% if @action_form=='update' %>
+        <td><%= f.select :itaku_code, @itaku_codes, { :include_blank => true} %></td>
+      <% else %>
+        <td><%= f.select :itaku_code, @itaku_codes, { :include_blank => true, :selected => current_user.itaku_code.to_s} %></td>
+      <% end %>
+    </tr>
+    <%= hidden_field :m_driver, :delete_flg, :value => @m_driver.delete_flg.nil? ? 0 : @m_driver.delete_flg %>
+    </thead>
+  </table>
+  <br>
+  <div class="actions">
+    <% if current_user.authority!=9 %>
+      <%= f.submit :"更新", :onclick => ('return fdrivers_submit();'), :class => 'btn btn-primary' %>&nbsp;&nbsp;
+    <% end %>
+    <%= link_to '戻る', m_drivers_path, :class => 'btn', :style=>'text-decoration:none;' %>
+  </div>
+<% end %>
+<% content_for :scripts do %>
+  <script type="text/javascript">
+    function fdrivers_submit(){
+      if (document.getElementById("m_driver_driver_code").value.length<=0) {
+        alert("運転者コードは入力必須です。");
+        return false;
+      }
+      if (document.getElementById("m_driver_driver_name").value.length<=0) {
+        alert("運転者名は入力必須です。");
+        return false;
+      }
+      if (document.getElementById("m_driver_driver_code").value.match(/[^0-9a-zA-Z_]+/)){
+        alert("運転者コードは半角英数字で入力してください。");
+        return false;
+      }
+      if(window.confirm('更新しますがよろしいですか？')){
+        return true;
+      }else{
+        return false;
+      }
+    }
+  </script>
+<% end %>

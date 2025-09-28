@@ -1,0 +1,233 @@
+<% content_for :js do %>
+  <%= javascript_include_tag "geocoder" %>
+<% end %>
+
+<h1><%= t".title" %></h1>
+
+  <div id="layer"></div>
+  <br>
+  <table>
+    <thead>
+      <tr>
+        <th><%= t".keyword" %></th>
+        <td>
+        <input id="address" type="textbox" size=50 value="<%= @def_address %>">
+        <input type="image" src="<%= image_path("search_button.png") %>" alt="検索" align="top" onclick="codeAddress()">
+        </td>
+      <tr>
+      <tr>
+        <th><%= t ".manager_type" %></th>
+        <td>
+          <% @admin_type_count = 0 %>
+          未登録<%= check_box "search_admin_type", "-1", {:checked => true, :onchange => "f_marker_dsp_map();"} %>
+          <% @admin_types.each do |admin_type| %>
+             &nbsp;&nbsp;<%= admin_type.class_name %><%= check_box "search_admin_type", admin_type.class_code.to_s, {:checked => true, :onchange => "f_marker_dsp_map();"} %>
+             <% @admin_type_count = admin_type.class_code %>
+          <% end %>
+          <%= hidden_field_tag "admin_type_count", @admin_type_count %>
+        </td>
+      </tr>
+  </table>
+  <br>
+  <input type=button value="地図出力" onclick=fmap_output(); class='btn btn-light'>
+  <br><br>ズームレベル：<span id=span_map_zoom_size></span><span id=span_station_display style="display:none; color:red;">&nbsp;【ステーション非表示】※ズームレベル16以上で表示されます</span>
+  <% if not @map_zenrin_cid.blank? %>
+    <input type=button value="ゼンリン住宅地図" class='btn' style="position:relative; top:-10px; left:400px;" onclick=fzenrin_common_map_display("<%= root_url(only_path: false) %>");>
+  <% end %>
+  <br>
+
+  <div class="map_container" style="width:640px; height:500px;">
+    <div id="map_canvas" style="width:640px; height:500px;"></div>
+  </div>
+  <br>
+  <input type=hidden id=routecode name=routecode>
+
+<!-- <form action="search_maps" data-remote="true" id="marker_form" name="marker_form" method="post"> -->
+<%= form_with url: {controller: 'search_maps', action: 'ajax'}, local: false, id: 'marker_form', html: {name: 'marker_form', style: 'display:none'}, data:{turbo: false} do |f| %>
+  <%= hidden_field 'format', 'text/javascript' %>
+  <%= hidden_field 'marker_flg', '', :value => 1 %>
+  <%= hidden_field 'routecode_marker', '' %>
+  <%= hidden_field 'northeast_lat', '' %>
+  <%= hidden_field 'southwest_lat', '' %>
+  <%= hidden_field 'northeast_lng', '' %>
+  <%= hidden_field 'southwest_lng', '' %>
+  <%= hidden_field 'admin_type', '-1' %>
+  <% @admin_types.each do |admin_type| %>
+    <%= hidden_field 'admin_type', admin_type.class_code.to_s %>
+  <% end %>
+  <%= f.submit id: 'marker_form_submit' %>
+<% end %>
+
+<% content_for :scripts do %>
+  <script src="//maps.googleapis.com/maps/api/js?language=ja&key=<%= @map_key %>"></script>
+  <script src="//google-maps-utility-library-v3.googlecode.com/svn/tags/markerclustererplus/2.0.14/src/markerclusterer_packed.js" type="text/javascript"></script>
+  <script type="text/javascript" charset="utf-8">
+
+    var marker = new Array();
+    var arrpoly = new Array();
+    var poly_color;
+    var iCount=0;
+    var colorCount=0;
+    var routeCodeHkn="";
+    var custom_count=0;
+    var myLatlng = new google.maps.LatLng("<%= @def_lat %>","<%= @def_lng %>");
+    var mapOptions = {
+      auto_zoom: true,
+      zoom: <%= @def_zoom %>,
+      auto_adjust: false,
+      center: myLatlng,
+      gestureHandling: "greedy",
+      mapTypeId: google.maps.MapTypeId.ROADMAP
+    }
+    var map = new google.maps.Map(document.getElementById("map_canvas"), mapOptions);
+
+<%
+  if not @m_route_areas.nil?
+    @m_route_areas.each do |m_route_area|
+%>
+      if(routeCodeHkn!="<%= m_route_area.route_code %>"){
+        colorCount+=1;
+        poly_color = poly_color_code[colorCount.toString().slice(-1)];
+        <% if not m_route_area.area_color_value.blank? %>
+          poly_color = "<%= m_route_area.area_color_value.to_s %>";
+        <% end %>
+        
+        routeCodeHkn = "<%= m_route_area.route_code %>";
+      }
+      var latlngData2 = (new Function("return " + "[" + "<%= m_route_area.latlng %>"+ "]"))();
+      var arrCoords2 = new Array();  
+      for (i = 0;i < latlngData2.length;i++) {
+        // 座標地をlatlng値に変換  
+        var latlng2 = new google.maps.LatLng(latlngData2[i].lat, latlngData2[i].lng);  
+        // latlng値を配列に退避  
+        arrCoords2.push(latlng2);  
+      }
+      // ポリゴン(多角形)を生成し、マップに表示  
+      arrpoly[iCount] = new google.maps.Polygon({  
+        map: map,              //マップ
+        paths: arrCoords2,     //閉ループを示す座標列
+        strokeWeight: 2,       //ストローク幅(ピクセル単位)  
+        strokeColor: poly_color,//ストロークの色(16進数形式)
+        strokeOpacity: 1,    //ストロークの不透明度
+        fillColor: poly_color,  //塗りつぶしの色(16進数形式)
+        fillOpacity: 0.1       //塗りつぶしの不透明度(0.0～1.0)
+      });
+
+      //クリック時
+      google.maps.event.addListener(arrpoly[iCount], 'click', function(object) {
+        alert("収集区 " + "<%= m_route_area.route_code %>:<%= m_route_area.route_name %>");
+      });
+      iCount += 1;
+<%
+    end
+  end
+%>
+
+    //地図移動時
+    google.maps.event.addListener(map, 'idle', function(object) {
+      f_marker_dsp_map();
+    });
+
+    function getAddress(latlng) {
+
+      // ジオコーダのコンストラクタ
+      geocoder = new google.maps.Geocoder();
+      var address = "";
+      
+      // geocodeリクエストを実行。
+      // 第１引数はGeocoderRequest。緯度経度⇒住所の変換時はlatLngプロパティを入れればOK。
+      geocoder.geocode({
+        latLng: latlng
+      }, function(results, status) {
+        if (status == google.maps.GeocoderStatus.OK) {
+          // results.length > 1 で返ってくる場合もありますが・・・。
+          if (results[0].geometry) {
+
+            // 住所を取得(日本の場合だけ「日本, 」を削除)
+            address = results[0].formatted_address.replace(/^日本, /, '');
+            document.getElementById("address_new_").value = address;
+          }
+        } else {
+          document.getElementById("address_new_").value = "";
+          alert("エラーが発生しました。");
+        }
+      });
+    }
+    function fmap_output(){
+      if(custom_count>9){
+        alert("地図上のステーションが９箇所を超えている為、\n出力することができません。");
+        return false;
+      }else{
+        //管理者種別
+        var admin_type = "";
+        for(var j = -1; j <= eval(document.getElementById("admin_type_count").value); j++){
+          if(document.getElementById("search_admin_type_"+j)){
+            if(document.getElementById("search_admin_type_"+j).checked){
+              admin_type = admin_type + "_1";
+            }else{
+              admin_type = admin_type + "_0";
+            }
+          }
+        }
+        var center_lat = map.getBounds().getCenter().lat();
+        var center_lng = map.getBounds().getCenter().lng();
+        var east_lat = map.getBounds().getNorthEast().lat();
+        var west_lat = map.getBounds().getSouthWest().lat();
+        var east_lng = map.getBounds().getNorthEast().lng();
+        var west_lng = map.getBounds().getSouthWest().lng();
+        var zoom = map.zoom;
+        var maptype = map.getMapTypeId();
+        var para = "1_" + zoom + "_" + String(center_lat).replace(".","-") + "_" + String(center_lng).replace(".","-") + "_" + String(east_lat).replace(".","-") + "_" + String(west_lat).replace(".","-") + "_" + String(east_lng).replace(".","-") + "_" + String(west_lng).replace(".","-") + "_" + maptype + admin_type;
+        window.open("<%= search_maps_path.to_s %>" + "/" + para, 'hoge', 'height=600, width=800, resizable=yes, scrollbars=yes');
+      }
+    }
+    function fmap_output_cust(cust_code){
+      var center_lat = map.getBounds().getCenter().lat();
+      var center_lng = map.getBounds().getCenter().lng();
+      var east_lat = map.getBounds().getNorthEast().lat();
+      var west_lat = map.getBounds().getSouthWest().lat();
+      var east_lng = map.getBounds().getNorthEast().lng();
+      var west_lng = map.getBounds().getSouthWest().lng();
+      var zoom = map.zoom;
+      var maptype = map.getMapTypeId();
+      var para = "2_" + zoom + "_" + String(center_lat).replace(".","-") + "_" + String(center_lng).replace(".","-") + "_" + String(east_lat).replace(".","-") + "_" + String(west_lat).replace(".","-") + "_" + String(east_lng).replace(".","-") + "_" + String(west_lng).replace(".","-") + "_" + maptype + "_" + cust_code;
+      window.open("<%= search_maps_path.to_s %>" + "/" + para, 'hoge', 'height=600, width=800, resizable=yes, scrollbars=yes');
+    }
+    //マーカー再表示
+    function f_marker_dsp_map(){
+      //マーカークリア
+      for(var i = 0; i < marker.length; i++){
+        marker[i].setMap(null);
+      }
+      marker = new Array();
+      //表示サイズが16以上の場合マーカー表示
+      if(map.zoom>=16){
+        document.getElementById("span_station_display").style.display="none";
+        //緯度経度取得
+        $('#layer').show();
+        document.getElementById("routecode_marker_").value = document.getElementById("routecode").value;
+        document.getElementById("northeast_lat_").value =map.getBounds().getNorthEast().lat();
+        document.getElementById("southwest_lat_").value =map.getBounds().getSouthWest().lat();
+        document.getElementById("northeast_lng_").value =map.getBounds().getNorthEast().lng();
+        document.getElementById("southwest_lng_").value =map.getBounds().getSouthWest().lng();
+        //管理者種別
+        for(var j = -1; j <= eval(document.getElementById("admin_type_count").value); j++){
+          if(document.getElementById("search_admin_type_"+j)){
+            if(document.getElementById("search_admin_type_"+j).checked){
+              document.getElementById("admin_type_" + j).value = 1;
+            }else{
+              document.getElementById("admin_type_" + j).value = 0;
+            }
+          }
+        }
+        
+        //再読み込み
+        //document.getElementById("marker_form").querySelector('[type="submit"]').click();
+        document.getElementById("marker_form_submit").click();
+      }else{
+        document.getElementById("span_station_display").style.display="";
+      }
+      $("#span_map_zoom_size").html(map.zoom);
+    }
+  </script>
+<% end %>

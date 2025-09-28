@@ -1,0 +1,102 @@
+<h1>メール送信履歴一覧画面</h1>
+
+<div id="cover">
+
+  <%= paginate(@t_mail_hists) %>
+  <table>
+    <thead>
+      <tr>
+        <th>送信日時</th>
+        <th>送信先</th>
+        <th>件名</th>
+        <th>添付</th>
+        <th>本文</th>
+      </tr>
+    </thead>
+    <tbody>
+      <% @cnt_no = 0 %>
+      <% @t_mail_hists.each do |t_mail_hist| %>
+        <% @file_find = 0 %>
+        <% if (not t_mail_hist.send_file.nil?) && t_mail_hist.send_file!="" %>
+          <% if File.exist?(t_mail_hist.send_file) then %>
+            <% @file_find = 1 %>
+            <% @file_name = "" %>
+            <% filenames = Dir.glob(t_mail_hist.send_file+'/*') %>
+            <% filenames.each do |f| %>
+              <% @file_name = @file_name + File.basename(f) %>
+            <% end %>
+          <% else %>
+            <% @file_find = 2 %>
+          <% end %>
+        <% end %>
+        <tr>
+          <td><%= t_mail_hist.send_date.in_time_zone('Tokyo').strftime("%Y年%m月%d日 %H:%M:%S") %></td>
+          <td><%= t_mail_hist.send_email %></td>
+          <td><%= t_mail_hist.send_subject %></td>
+          <td align=center><%= t_mail_hist.send_file.nil? || t_mail_hist.send_file=="" ? "" : image_tag("../images/icon_clip1.png") %></td>
+          <td align=center><input type=button value="本文" onClick=m_custom_mail_modal_dsp(<%= @cnt_no.to_s %>); class='btn btn-mini'></td>
+          <input type=hidden id=send_subject_<%= @cnt_no.to_s %> value="<%= t_mail_hist.send_subject %>">
+          <input type=hidden id=send_body_<%= @cnt_no.to_s %> value="<%= t_mail_hist.send_body %>">
+          <input type=hidden id=file_find_<%= @cnt_no.to_s %> value="<%= @file_find %>">
+          <input type=hidden id=file_name_<%= @cnt_no.to_s %> value="<%= @file_name %>">
+          <input type=hidden id=mc_id_<%= @cnt_no.to_s %> value="<%= t_mail_hist.mc_id %>">
+          <input type=hidden id=mail_hist_id_<%= @cnt_no.to_s %> value="<%= t_mail_hist.id %>">
+        </tr>
+        <% @cnt_no = @cnt_no + 1 %>
+      <% end %>
+    </tbody>
+  </table>
+  <br><br>
+  <%= content_for :scripts do %>
+    <script type="text/javascript" charset="utf-8">
+    </script>
+  <% end %>
+</div>
+<%= link_to_function '戻る', 'history.back()', :class => 'btn', :style=>'text-decoration:none;' %>
+
+
+<div id="modal" style="display:none;">
+  <table cellpadding=2 cellspacing=0 width=98% bordercolorlight="#999999" bordercolordark="#ffffff" border=1>
+    <tr>
+      <td align=center>件名</td>
+      <td><div id=subject_txt></div></td>
+    </tr>
+    <tr>
+      <td align=center>添付ファイル</td>
+      <td><div id=send_file></div>
+    </tr>
+    <tr>
+      <td class="pntTd03" align=center>本文</td>
+      <td class="pntTd00">
+        <textarea name="message_txt" id="message_txt" cols="80" rows="10" readonly></textarea>
+      </td>
+    </tr>
+  </table>
+</div>
+<% content_for :scripts do %>
+  <script type="text/javascript" charset="utf-8">
+    function m_custom_mail_modal_dsp(cnt_no){
+      document.getElementById("subject_txt").innerHTML = document.getElementById("send_subject_"+cnt_no).value;
+      document.getElementById("message_txt").value = document.getElementById("send_body_"+cnt_no).value;
+      switch (eval(document.getElementById("file_find_"+cnt_no).value)){
+        case 0:
+          document.getElementById("send_file").innerHTML = "";
+          break;
+        case 1:
+          document.getElementById("send_file").innerHTML = "<a href=" + document.getElementById("mc_id_"+cnt_no).value + "?mail_hist_id=" + document.getElementById("mail_hist_id_"+cnt_no).value + "&file_name=" + encodeURIComponent(document.getElementById("file_name_"+cnt_no).value) + ">" + document.getElementById("file_name_"+cnt_no).value + "</a>";
+          break;
+        case 2:
+          document.getElementById("send_file").innerHTML = "<font color=red>添付ファイルは既に削除されています。</font>";
+          break;
+      }
+      $('#modal').dialog({
+        title: "送信内容　",
+        modal: true,
+        show : "fade",
+        hide : "fade",
+        width: 700,
+        height: 400,
+      });
+    }
+  </script>
+<% end %>

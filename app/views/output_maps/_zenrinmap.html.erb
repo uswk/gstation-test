@@ -1,0 +1,568 @@
+<% content_for :scripts do %>
+  <script src="//maps.googleapis.com/maps/api/js?language=ja&key=<%= @map_key %>"></script>
+  <script src="//google-maps-utility-library-v3.googlecode.com/svn/tags/markerclustererplus/2.0.14/src/markerclusterer_packed.js" type="text/javascript"></script>
+  <script src="https://<%= @map_zenrin_url %>/auth/jsapi/loader.htm"></script>
+  <script src="https://unpkg.com/@googlemaps/markerwithlabel/dist/index.min.js"></script>
+  <script type="text/javascript" charset="utf-8">
+    var cust_code;
+    var cust_name;
+    var addr_1;
+    var admin_name;
+    var admin_tel;
+    var admin_email;
+    var type_value;
+    var route_memo;
+    var tree_no;
+    var id;
+    var latitude;
+    var longitude;
+    var seq_id = 0;
+    var contentString;
+    var icon = "images/marker_icon.png";
+    var infowindow = new Array();
+
+    var marker = new Array();
+    var treeMarker = new Array();
+    var arrpoly = new Array();
+    var iCount=0;
+    var colorCount=0;
+    var routeCodeHkn="";
+    var myLatlng = new google.maps.LatLng("<%= @def_lat %>","<%= @def_lng %>");
+    var mapOptions = {
+      auto_zoom: true,
+      zoom: <%= @def_zoom %>,
+      auto_adjust: false,
+      center: myLatlng,
+      mapTypeId: google.maps.MapTypeId.ROADMAP
+    }
+    var map = new google.maps.Map(document.getElementById("map_canvas"), mapOptions);
+    var poly_color = poly_color_code[0];
+    <% if not @m_route_areas.blank? %>
+      <% if not @m_route_areas[0].area_color_value.blank? %>
+        poly_color = "<%= @m_route_areas[0].area_color_value.to_s %>";
+      <% end %>
+    <% end %>
+
+<%
+  if not @m_route_areas.nil?
+    @m_route_areas.each do |m_route_area|
+%>
+      if(routeCodeHkn!="<%= m_route_area.route_code %>"){
+        colorCount+=1;
+        routeCodeHkn = "<%= m_route_area.route_code %>";
+      }
+      var latlngData2 = (new Function("return " + "[" + "<%= m_route_area.latlng %>"+ "]"))();
+      var arrCoords2 = new Array();  
+      for (i = 0;i < latlngData2.length;i++) {
+        // 座標地をlatlng値に変換  
+        var latlng2 = new google.maps.LatLng(latlngData2[i].lat, latlngData2[i].lng);  
+        // latlng値を配列に退避  
+        arrCoords2.push(latlng2);  
+      }
+      // ポリゴン(多角形)を生成し、マップに表示  
+      arrpoly[iCount] = new google.maps.Polygon({  
+        map: map,              //マップ
+        paths: arrCoords2,     //閉ループを示す座標列
+        strokeWeight: 2,       //ストローク幅(ピクセル単位)  
+        strokeColor: poly_color,//ストロークの色(16進数形式)
+        strokeOpacity: 0.5,    //ストロークの不透明度
+        fillColor: poly_color,  //塗りつぶしの色(16進数形式)
+        fillOpacity: 0.02       //塗りつぶしの不透明度(0.0～1.0)
+      });
+      iCount += 1;
+<%
+    end
+  end
+%>
+
+<%
+  if not @m_customs.nil?
+    @m_customs.each do |custom|
+%>
+      cust_code = "<%= custom.cust_code %>";
+      cust_name = "<%= custom.cust_name %>";
+      addr_1 = "<%= custom.addr_1 %>";
+      admin_name = "<%= custom.admin_name %>";
+      admin_tel = "<%= custom.admin_tel %>";
+      admin_email = "<%= custom.admin_email %>";
+      type_value = "<%= custom.type_value %>";
+      route_memo = "<%= custom.route_memo %>";
+      tree_no = "<%= custom.tree_no %>";
+      if(route_memo){
+        route_memo = "<br>" + route_memo.split("|br|").join("<br>");
+      }
+      id = "<%= custom.id %>";
+      latitude = "<%= custom.latitude %>";
+      longitude = "<%= custom.longitude %>";
+      
+      myLatlng = new google.maps.LatLng(latitude,longitude);
+      var elementid = "delete_form"+id;
+      contentString = "<div style='width:450px; height:200px;'><h3>" + cust_code + ":" + cust_name + "</h3>管理者名：" + admin_name + "<br>電話番号：" + admin_tel + route_memo;
+
+      infowindow[seq_id] = new google.maps.InfoWindow({
+        content: contentString,
+        disableAutoPan: true
+      });
+      marker[seq_id] = new google.maps.Marker({
+        position: myLatlng,
+        icon: icon,
+        map: map,
+        zIndex: 1,
+        title: ""+seq_id
+      });
+      treeMarker[seq_id] = new markerWithLabel.MarkerWithLabel({
+        position: myLatlng,
+        map: map,
+        icon: {
+          path: google.maps.SymbolPath.BACKWARD_OPEN_ARROW,
+          scale: 0,
+        },
+        labelContent: " "+tree_no,
+        labelAnchor: new google.maps.Point(-3, -14),
+        labelClass: "markerwithlabel-labels",
+        labelStyle: { opacity: 1.0 },
+        zIndex: 2,
+        clickable: false
+      });
+      
+      //レイヤー追加
+      //geopt.zIndex = 0;
+      //popupInfo.marker = new ZntMarker( drw_pnt, geopt );
+      //popupInfo.layer.addGeometry(popupInfo.marker);
+      
+      //popupInfo.popup = document.createElement("div");
+      //popupInfo.popup.className = "popupBox";
+      //popupInfo.popup.innerHTML = "<div style='text-align:center;width:100%; text-shadow: 1px 1px 0 #fff;' >" + tree_no + "</div>";
+      //popupInfo.layer.addElement(popupInfo.popup, drw_pnt, new ZntPoint(-5,1));
+      
+      
+      google.maps.event.addListener(marker[seq_id], 'click', function() {
+        //情報ウィンドウ閉じる
+        for(var i = 0; i < seq_id; i++){
+          infowindow[i].close();
+        }
+        infowindow[this.getTitle()].open(map,marker[this.getTitle()]);
+      });
+      
+      seq_id += 1;
+<%
+    end
+  end
+%>
+
+  //移動ボタン実行時
+  function JupMove(){
+    if (document.getElementById("id_google_map_display").style.visibility!="hidden"){
+      var lat_sa = eval(map.getBounds().getNorthEast().lat()) - eval(map.getBounds().getSouthWest().lat());
+      var latlng = map.getCenter();
+      var lat = latlng.lat();
+      var lng = latlng.lng();
+      var lat_new = eval(lat)+lat_sa;
+      map.panTo(new google.maps.LatLng(lat_new,lng));
+    }else{
+      var zenrin_lon = map_zenrin.getCenter().lng;
+      var zenrin_lat = map_zenrin.getCenter().lat+eval(zenrin_y_size(map_zenrin.getZoom()));
+      map_zenrin.setCenter(new ZDC.LatLng(Number(zenrin_lat), Number(zenrin_lon)));
+    }
+  }
+  function JdownMove(){
+    if (document.getElementById("id_google_map_display").style.visibility!="hidden"){
+      var lat_sa = eval(map.getBounds().getNorthEast().lat()) - eval(map.getBounds().getSouthWest().lat());
+      var latlng = map.getCenter();
+      var lat = latlng.lat();
+      var lng = latlng.lng();
+      var lat_new = eval(lat)-lat_sa;
+      map.panTo(new google.maps.LatLng(lat_new,lng));
+    }else{
+      var zenrin_lon = map_zenrin.getCenter().lng;
+      var zenrin_lat = map_zenrin.getCenter().lat-eval(zenrin_y_size(map_zenrin.getZoom()));
+      map_zenrin.setCenter(new ZDC.LatLng(Number(zenrin_lat), Number(zenrin_lon)));
+    }
+  }
+  function JleftMove(){
+    if (document.getElementById("id_google_map_display").style.visibility!="hidden"){
+      var lng_sa = eval(map.getBounds().getNorthEast().lng()) - eval(map.getBounds().getSouthWest().lng());
+      var latlng = map.getCenter();
+      var lat = latlng.lat();
+      var lng = latlng.lng();
+      var lng_new = eval(lng)-lng_sa;
+      map.panTo(new google.maps.LatLng(lat,lng_new));
+    }else{
+      var zenrin_lon = map_zenrin.getCenter().lng-eval(zenrin_x_size(map_zenrin.getZoom()));
+      var zenrin_lat = map_zenrin.getCenter().lat;
+      map_zenrin.setCenter(new ZDC.LatLng(Number(zenrin_lat), Number(zenrin_lon)));
+    }
+  }
+  function JrightMove(){
+    if (document.getElementById("id_google_map_display").style.visibility!="hidden"){
+      var lng_sa = eval(map.getBounds().getNorthEast().lng()) - eval(map.getBounds().getSouthWest().lng());
+      var latlng = map.getCenter();
+      var lat = latlng.lat();
+      var lng = latlng.lng();
+      var lng_new = eval(lng)+lng_sa;
+      map.panTo(new google.maps.LatLng(lat,lng_new));
+    }else{
+      var zenrin_lon = map_zenrin.getCenter().lng+eval(zenrin_x_size(map_zenrin.getZoom()));
+      var zenrin_lat = map_zenrin.getCenter().lat;
+      map_zenrin.setCenter(new ZDC.LatLng(Number(zenrin_lat), Number(zenrin_lon)));
+    }
+  }
+
+  //####### ゼンリン住宅地図用 STR ###############################################################
+  var map_zenrin;
+  var geopt;
+  var geom = new Array();
+  var geom_count = new Array();
+  var geom_popup;
+  var zenrin_content = new Array();
+  var arrIcon = new Array();
+  var arrTreeNo = new Array();
+  
+  var geopt_center;
+  
+  //ポップアップ表示情報オブジェクト
+  var popupInfo = {
+    layer: null, //ポップアップ表示を行うレイヤ
+    marker: null, //マーカー
+    popup: null //ポップアップ表示に使用されるDOM要素
+  };
+  
+  //ロード時
+  window.onload = function(){
+    zenrin_map_load();
+  };
+
+  //ゼンリン住宅地図ロード
+  function zenrin_map_load(){
+    
+    if("<%= @map_zenrin_cid %>"){
+      
+      // failedイベントリスナー設定
+      // 認証クラスでエラーが発生した場合にfailedが発行される
+      ZisAuth.addEventListener("failed", function(e){
+        if(e.status.code=="10120004"){
+          alert("2重起動エラーが発生しました。しばらく待ってから起動し直してください。")
+        }else{
+          alert("エラーが発生しました。("+ e.status.code + ")");
+        }
+      });
+      
+      // readyイベントリスナー設定
+      // 認証クラスで地図が利用可能な場合にreadyが発行される
+      ZisAuth.addEventListener("ready", function(e) {
+
+        //設定を収集
+        var zenrin_lon = "<%= @def_lng %>";
+        var zenrin_lat = "<%= @def_lat %>";
+        
+        var w = 600;
+        var h = 920;
+        
+        //ズーム設定
+        var zoom = 18;  //デフォルト設定
+
+        // マップエレメント要素を取得する
+        var mapElement = document.getElementById("mapContainer");
+        // MapOptionsをデフォルト値から変更する場合各パラメータに値を設定
+        var mapOptions = ZisAuth.getMapOption();
+        mapOptions.center = new ZDC.LatLng(zenrin_lat, zenrin_lon);
+        mapOptions.zoom = zoom
+        // 地図を生成
+
+        map_zenrin = new ZDC.Map(
+          mapElement,
+          mapOptions,
+          function() {
+            // Success callback
+            // コントロールを追加する
+            // コンパスの表示
+            map_zenrin.addControl(new ZDC.Compass('top-right'));
+            // ズームボタンの表示
+            map_zenrin.addControl(new ZDC.ZoomButton('top-left'));
+            // スケールバーの表示
+            map_zenrin.addControl(new ZDC.ScaleBar('bottom-left'));
+
+            //マーカー表示
+            var arrLat = new Array();
+            var arrLng = new Array();
+
+            zenrin_content = new Array();
+            geom = new Array();
+            geom_count = new Array();
+            geom_popup = "";
+            arrIcon = new Array();
+            arrTreeNo = new Array();
+            seq_id = 0;
+<%
+            if not @m_customs.nil?
+              @m_customs.each do |custom|
+%>
+                cust_code = "<%= custom.cust_code %>";
+                cust_name = "<%= custom.cust_name %>";
+                addr_1 = "<%= custom.addr_1 %>";
+                admin_name = "<%= custom.admin_name %>";
+                admin_tel = "<%= custom.admin_tel %>";
+                admin_email = "<%= custom.admin_email %>";
+                type_value = "<%= custom.type_value %>";
+                route_memo = "<%= custom.route_memo %>";
+                tree_no = "<%= custom.tree_no %>";
+                if(route_memo){
+                  route_memo = "<br>" + route_memo.split("|br|").join("<br>");
+                }
+                id = "<%= custom.id %>";
+                
+                arrIcon[seq_id] ="images/marker_icon.png";
+                
+                arrLat[seq_id] = "<%= custom.latitude %>";
+                arrLng[seq_id] = "<%= custom.longitude %>";
+                arrTreeNo[seq_id] = tree_no;
+                
+                contentString = "<div style='width:450px; height:200px;'><h3>" + cust_code + ":" + cust_name + "</h3>管理者名：" + admin_name + "<br>電話番号：" + admin_tel + route_memo;
+                zenrin_content[seq_id] = contentString;
+
+                geom[seq_id] = new ZDC.Marker(
+                  //マーカー設定
+                  new ZDC.LatLng(arrLat[seq_id], arrLng[seq_id]),
+                  {
+                    offset: new ZDC.Point(4, 4),
+                    custom: {
+                      base : {
+                        imgSrc: arrIcon[seq_id]
+                      }
+                    }
+                  }
+                );
+                
+                geom_count[seq_id] = new ZDC.Marker(
+                  //マーカー設定
+                  new ZDC.LatLng(arrLat[seq_id], arrLng[seq_id]),
+                  {
+                    offset: new ZDC.Point(0, 0),
+                    custom: {
+                      base : {
+                        imgSrc: "http://chart.apis.google.com/chart?chst=d_text_outline&chld=000000|12|h|ffffff|_|"+tree_no
+                      }
+                    }
+                  }
+                );
+                
+                //吹き出し設定
+                openPopup(seq_id);
+                
+                map_zenrin.addWidget(geom[seq_id]);
+                map_zenrin.addWidget(geom_count[seq_id]);
+                seq_id += 1;
+<%
+              end
+            end
+%>
+
+            //エリア表示
+            var geopt_area;
+            var geom_area;
+            var pntList = [];
+            var zenrin_lat;
+            var zenrin_lng;
+<%
+            if not @m_route_areas.nil?
+              @m_route_areas.each do |m_route_area|
+%>
+                var latlngData2 = (new Function("return " + "[" + "<%= m_route_area.latlng %>"+ "]"))();
+                pntList = [];
+                for (i = 0;i < latlngData2.length;i++) {
+                  zenrin_lat = latlngData2[i].lat;
+                  zenrin_lng = latlngData2[i].lng;
+                  pntList.push(new ZDC.LatLng(zenrin_lat,zenrin_lng));
+                }
+                //ポリゴンを追加
+                geom_area = new ZDC.Polygon([pntList], {
+                  fill: poly_color,
+                  stroke: '#000000',
+                  strokeWidth: 1,
+                  opacity: 0.3,
+                  propagation: true
+                });
+                
+                map_zenrin.addWidget(geom_area);
+<%
+              end
+            end
+%>
+
+          },
+          function() {
+            // Failure callback
+          }
+        );
+        
+      });
+      
+      // loadイベントリスナー設定
+      // 認証クラスでログイン可能状態になった場合にloadが発行される
+      ZisAuth.addEventListener("load", function(e) {
+        const obj = {
+          uid: "<%= @map_zenrin_uid %>"
+            ,pwd: "<%= @map_zenrin_pwd %>"
+            ,sid: "<%= @map_zenrin_cid %>"
+            ,device_flag: 1
+        }
+        ZisAuth.login(obj);
+      });
+      
+    }
+  }
+
+  //吹き出しの表示
+  function openPopup(marker_seq_id) {
+    geom[marker_seq_id].addEventListener('click', function(result) {
+      //吹き出し初期化
+      if(geom_popup){
+        map_zenrin.removeWidget(geom_popup);
+        geom_popup = "";
+      }
+      //吹き出し作成
+      map_zenrin.addWidget(
+        geom_popup = new ZDC.Popup(
+          geom[marker_seq_id].getLatLng(), 
+          {
+            htmlSource: zenrin_content[marker_seq_id], 
+            offset: new ZDC.Point(0, 0)
+          }
+        )
+      );
+    });
+  }
+
+
+
+
+
+
+
+  //地図切替
+  function map_change(){
+    if(document.getElementById("mapChange").value=="GoogleMapに切替"){
+      //GoogleMapへ切替
+      document.getElementById("mapChange").value = "ゼンリン住宅地図に切替";
+      document.getElementById("id_google_map_display").style.visibility="visible";
+      document.getElementById("id_zenrin_map_display").style.display="none";
+      //緯度経度変換
+      var arrLat = new Array();
+      var arrLng = new Array();
+      arrLat[0] = map_zenrin.getCenter().lat;
+      arrLng[0] = map_zenrin.getCenter().lng;
+      map.setCenter(new google.maps.LatLng(arrLat[0],arrLng[0]));
+    }else{
+      //ゼンリン地図へ切替
+      document.getElementById("mapChange").value = "GoogleMapに切替";
+      document.getElementById("id_google_map_display").style.visibility="hidden";
+      document.getElementById("id_zenrin_map_display").style.display="";
+      //緯度経度変換
+      var arrLat = new Array();
+      var arrLng  = new Array();
+      arrLat[0] = map.center.lat();
+      arrLng[0] = map.center.lng();
+      map_zenrin.setCenter(new ZDC.LatLng(Number(arrLat[0]), Number(arrLng[0])));
+    }
+  }
+
+  //ゼンリン横サイズ
+  function zenrin_x_size(zoom){
+    var adjust_size = 0.0002245787154 / 1.35;
+    switch(Math.round(zoom)){
+      case 10:
+        adjust_size = adjust_size * 2048;
+        break;
+      case 11:
+        adjust_size = adjust_size * 1024;
+        break;
+      case 12:
+        adjust_size = adjust_size * 512;
+        break;
+      case 13:
+        adjust_size = adjust_size * 256;
+        break;
+      case 14:
+        adjust_size = adjust_size * 128;
+        break;
+      case 15:
+        adjust_size = adjust_size * 64;
+        break;
+      case 16:
+        adjust_size = adjust_size * 32;
+        break;
+      case 17:
+        adjust_size = adjust_size * 16;
+        break;
+      case 18:
+        adjust_size = adjust_size * 8;
+        break;
+      case 19:
+        adjust_size = adjust_size * 4;
+        break;
+      case 20:
+        adjust_size = adjust_size * 2;
+        break;
+      case 21:
+        adjust_size = adjust_size;
+        break;
+    }
+    return adjust_size;
+  }
+  
+  //ゼンリン縦サイズ
+  function zenrin_y_size(zoom){
+    var adjust_size = 0.0002741595591 / 1.33;
+    switch(zoom){
+      case 10:
+        adjust_size = adjust_size * 2048;
+        break;
+      case 11:
+        adjust_size = adjust_size * 1024;
+        break;
+      case 12:
+        adjust_size = adjust_size * 512;
+        break;
+      case 13:
+        adjust_size = adjust_size * 256;
+        break;
+      case 14:
+        adjust_size = adjust_size * 128;
+        break;
+      case 15:
+        adjust_size = adjust_size * 64;
+        break;
+      case 16:
+        adjust_size = adjust_size * 32;
+        break;
+      case 17:
+        adjust_size = adjust_size * 16;
+        break;
+      case 18:
+        adjust_size = adjust_size * 8;
+        break;
+      case 19:
+        adjust_size = adjust_size * 4;
+        break;
+      case 20:
+        adjust_size = adjust_size * 2;
+        break;
+      case 21:
+        adjust_size = adjust_size;
+        break;
+    }
+    return adjust_size;
+  }
+  
+  $(window).on("beforeunload",function(e){
+    //ログイン状態を取得する
+    var obj = ZisAuth.getStatus();
+    //ログイン状態を確認する
+    if( obj.status == true ){
+      //ログアウトする
+      ZisAuth.logout();
+    }
+  });
+  //####### ゼンリン住宅地図用 END ###############################################################
+  </script>
+<% end %>

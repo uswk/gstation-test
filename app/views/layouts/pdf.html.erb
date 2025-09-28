@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <%= wicked_pdf_javascript_include_tag "application" %>
+  <%= wicked_pdf_stylesheet_link_tag "feedbacks" %>
+  <%= wicked_pdf_stylesheet_link_tag "pdf" %>
+  <%= wicked_pdf_stylesheet_link_tag "main_pdf" %>
+</head>
+<body>
+
+<%= yield %>
+<%= yield :scripts %>
+
+</body>
+</html>

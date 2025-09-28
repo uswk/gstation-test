@@ -1,0 +1,50 @@
+<h1>一般廃棄物収集運搬業務実績報告書出力画面</h1>
+<p id="notice"><%= alert %></p>
+<div id="cover">
+  <%= form_tag("ippan_unpan_report001", method: "post", :html => {:class => 'form-horizontal'}) do %>
+    <table>
+      <thead>
+        <tr><th colspan=2>Excel出力</th></tr>
+        <tr>
+          <th>年月</th>
+          <td>
+            <%= text_field 'month', 'query', :class => 'input-small', :maxlength=>6, :value => @month %>
+          </td>
+        </tr>
+        <tr>
+          <td colspan=2 align=center><%= submit_tag 'Excelデータ出力', :onclick => 'return fexcel_send();', :class => 'btn btn-primary' %></td>
+          <%= hidden_field_tag :excel_flg, 1 %>
+        </tr>
+      </thead>
+    </table>
+  <% end %>
+</div>
+<%= content_for :scripts do %>
+  <script type="text/javascript" charset="utf-8">
+    function fexcel_send(){
+      if(!fcheck_ym(document.getElementById('month_query').value)){
+        alert("年月の形式が正しくありません。（yyyymm）");
+        return false;
+      }
+      if(window.confirm("Excel出力しますが、よろしいですか？")){
+        return true;
+      }else{
+        return false;
+      }
+    }
+    function fcheck_ym(datestr) { 
+      // 正規表現による日付書式チェック 
+      if(!datestr.match(/^\d{6}$/)){ 
+        return false; 
+      } 
+      var vYear = datestr.substr(0, 4) - 0; 
+      var vMonth = datestr.substr(4, 2) - 1; // Javascriptは、0-11で表現 
+      // 月,日の妥当性チェック 
+      if(vMonth >= 0 && vMonth <= 11){ 
+        return true;
+      }else{ 
+        return false; 
+      }
+    }
+  </script>
+<% end %>

@@ -1,0 +1,59 @@
+<h1>運転日報（サマリー）一覧画面</h1>
+<%= form_tag("t_carrun_summarys", method: "get") do %>
+  <table>
+    <thead>
+      <tr>
+        <th>収集区</th>
+        <td><%= select 'search', 'route', @route_codes, { :include_blank => true, :selected => @routecode.blank? ? "" : @routecode} %></td>
+        <th>出庫日</th>
+        <td>
+          <%= text_field 'search', 'date_from', :class => 'datepicker', :size => 10, :maxlength => 10, :value => @outdate_from.blank? ? Date.today.try(:strftime, "%Y/%m/%d") : @outdate_from %>
+          ～
+          <%= text_field 'search', 'date_to', :class => 'datepicker', :size => 10, :maxlength => 10, :value => @outdate_to.blank? ? Date.today.try(:strftime, "%Y/%m/%d") : @outdate_to %>
+        </td>
+      </tr>
+      <% if current_user.itaku_code.blank? %>
+        <th>委託会社</th>
+        <td colspan=3><%= select 'search', 'itaku', @itaku_codes, { :include_blank => true, :selected => @itakucode.blank? ? "" : @itakucode} %></td>
+      <% end %>
+      <tr>
+        <td align=center colspan=4><%= submit_tag "検索", :class => 'btn' %></td>
+      </tr>
+    </thead>
+  </table>
+<% end %>
+<br>
+<%= paginate(@limits) %>
+<table>
+  <thead>
+    <tr>
+      <% if current_user.itaku_code.blank? %>
+        <th>委託会社</th>
+      <% end %>
+      <th>車両</th>
+      <th>収集区</th>
+      <th>出庫日時</th>
+      <th>帰庫日時</th>
+      <th></th>
+      <th></th>
+    </tr>
+  </thead>
+
+  <tbody>
+    <% @t_carruns.each do |t_carrun| %>
+      <tr>
+        <% if current_user.itaku_code.blank? %>
+          <td><%= t_carrun.itaku_name %></td>
+        <% end %>
+        <td><%= t_carrun.car_reg_code %></td>
+        <td><%= t_carrun.route_name %></td>
+        <td><%= t_carrun.out_timing.try(:strftime, "%Y/%m/%d %H:%M:%S") %></td>
+        <td><%= t_carrun.in_timing.try(:strftime, "%Y/%m/%d %H:%M:%S") %></td>
+        <% @url_path = t_collect_lists_path.to_s + "/" + t_carrun.id.to_s + "?out_date=" + ERB::Util.url_encode(t_carrun.out_timing.try(:strftime, "%Y/%m/%d")) + "&car_code=" + ERB::Util.url_encode(t_carrun.car_code.to_s) + "&route_code=" + ERB::Util.url_encode(t_carrun.route_code.to_s) %>
+        <td><%= link_to '出力', @url_path, :class => 'btn btn-mini' %></td>
+        <td><%= link_to '詳細', t_carrun_summary_path(t_carrun.id, :out_date=>t_carrun.out_timing.try(:strftime, "%Y/%m/%d"), :car_code=>t_carrun.car_code, :route_code=>t_carrun.route_code, :search_page=>params[:page], :outdate_from => @outdate_from, :outdate_to => @outdate_to, :routecode=>@routecode, :itakucode=>@itakucode), :class => 'btn btn-mini' %></td>
+      </tr>
+    <% end %>
+  </tbody>
+</table>
+※同じ出庫日の車両、収集区をまとめて表示します。

@@ -1,0 +1,71 @@
+<ul id="menu" data-turbo-prefetch="false">
+	<li><%= link_to "ホーム", search_maps_path %></li>
+	<li>
+		<a href="#">収集区管理</a>
+		<ul>
+			<li><%= link_to "収集区管理", m_routes_path %></li>
+			<li><%= link_to "収集区別地図表示", output_maps_path %></li>
+		</ul>
+	</li>
+	<li>
+		<a href="#">日報管理</a>
+		<ul>
+			<li><%= link_to "運転日報", t_carruns_path, data: {turbo: false} %></li>
+			<li><%= link_to "運転日報（サマリー）", t_carrun_summarys_path %></li>
+			<li><%= link_to "ゴミ回収状況", general_path %></li>
+			<li><%= link_to "車両運行状況",  t_carrun_lists_path %></li>
+			<li><%= link_to "収集未完了一覧",  collect_uncomp_path %></li>
+			<li><%= link_to "未回収一覧",  uncollect_path %></li>
+		</ul>
+	</li>
+	<% if current_user.itaku_code.blank? || current_user.authority==1 %>
+		<li>
+			<a href="#">マスタ管理</a>
+			<ul>
+				<li><%= link_to "ステーション管理", m_customs_path %></li>
+				<li><%= link_to "荷下先管理", unloads_path %></li>
+				<li><%= link_to "管理者管理", admins_path %></li>
+				<li><%= link_to "委託会社管理", gyoshas_path %></li>
+				<li><%= link_to "車両マスタ管理", m_cars_path %></li>
+				<li><%= link_to "運転者マスタ管理", m_drivers_path %></li>
+				<li><%= link_to "分類マスタ管理", m_combo_bigs_path %></li>
+				<li><%= link_to "ユーザー管理", users_path %></li>
+			</ul>
+		</li>
+		<li>
+			<a href="#">出力管理</a>
+			<ul>
+				<li><%= link_to "一括メール送信", m_custom_mail_path %></li>
+				<li><%= link_to "ステーション情報CSV出力", m_custom_csv_path %></li>
+				<li><%= link_to "ステーション情報Excel入出力", m_custom_excel_path %></li>
+				<li><%= link_to "管理者情報Excel入出力", admin_excel_path %></li>
+				<li><%= link_to "変更申請管理", t_change_shinseis_path %></li>
+				<li><%= link_to "管理者変更申請", t_change_shinsei_admins_path %></li>
+			</ul>
+		</li>
+	<% end %>
+	<li>
+		<a href="#">その他</a>
+		<ul>
+			<li><%= link_to "パスワード変更", edit_user_registration_path %></li>
+			<% if current_user.itaku_code.blank? || current_user.authority==1 %>
+				<li><%= link_to "メール設定", m_mail_settings_path %></li>
+			<% end %>
+			<li><%= link_to "ログ履歴", t_log_hists_path %></li>
+			<li><%= link_to "本部システム操作マニュアル", manual_path(:id=>1) %></li>
+			<li><%= link_to "車載機操作マニュアル", manual_path(:id=>2) %></li>
+		</ul>
+	</li>
+	<% @general_menus = MCombo.where("class_1=? and class_2=0 and delete_flg=0", G_GENERAL_MENU_CLASS_1).select("class_name, value").order("class_code") %>
+	<% if @general_menus.exists? %>
+		<li>
+			<a href="#">汎用</a>
+			<ul>
+				<% @general_menus.each do |menu| %>
+					<li><%= link_to menu.class_name, menu.value %></li>
+				<% end %>
+			</ul>
+		</li>
+	<% end %>
+	<li><%= link_to "ログアウト", destroy_user_session_path, :method => :get, data: { confirm: 'ログアウトしますがよろしいですか?' } %></li>
+</ul>

@@ -1,0 +1,74 @@
+<%= form_for(@m_combo_big) do |f| %>
+  <% if @m_combo_big.errors.any? %>
+    <div id="error_explanation">
+      <h2><%= pluralize(@m_combo_big.errors.count, "error") %> prohibited this m_combo_big from being saved:</h2>
+
+      <ul>
+      <% @m_combo_big.errors.full_messages.each do |msg| %>
+        <li><%= msg %></li>
+      <% end %>
+      </ul>
+    </div>
+  <% end %>
+
+  <table>
+    <thead>
+      <tr>
+        <th width=30%>大分類ｺｰﾄﾞ</th>
+        <% if @action_form=='update' %>
+          <td width=70%><%= f.text_field :class_1, :readonly => true, :disabled => true, :maxlength=>10 %></td>
+        <% else %>
+          <td width=70%><%= f.text_field :class_1, :maxlength=>10 %></td>
+        <% end %>
+      </tr>
+      <tr>
+        <th>名称</th>
+        <td><%= f.text_field :class_name, :maxlength=>20 %></td>
+      </tr>
+      <tr>
+        <th>略称</th>
+        <td><%= f.text_field :class_namea, :maxlength=>10 %></td>
+      </tr>
+      <tr>
+        <th>システム名称</th>
+        <td><%= f.text_field :system_name, :maxlength=>20 %></td>
+      </tr>
+      <%= hidden_field :m_combo_big, :system_flg, :value => @m_combo_big.system_flg.nil? ? 0 : @m_combo_big.system_flg %>
+      <%= hidden_field :m_combo_big, :delete_flg, :value => @m_combo_big.delete_flg.nil? ? 0 : @m_combo_big.delete_flg %>
+    </thead>
+  </table>
+  <br>
+  <div class="actions">
+    <% if current_user.authority!=9 %>
+      <%= f.submit :"更新", :onclick => ('return fcombo_bigs_submit();'), :class => 'btn btn-primary' %>&nbsp;&nbsp;
+    <% end %>
+    <%= link_to '戻る', m_combo_bigs_path, :class => 'btn', :style=>'text-decoration:none;' %>
+  </div>
+<% end %>
+<% content_for :scripts do %>
+  <script type="text/javascript">
+    function fcombo_bigs_submit(){
+      if (document.getElementById("m_combo_big_class_1").value.length<=0) {
+        alert("大分類コードは入力必須です。");
+        return false;
+      }
+      if (document.getElementById("m_combo_big_class_name").value.length<=0) {
+        alert("名称は入力必須です。");
+        return false;
+      }
+      if (document.getElementById("m_combo_big_class_namea").value.length<=0) {
+        alert("略称は入力必須です。");
+        return false;
+      }
+      if (document.getElementById("m_combo_big_class_1").value.match(/[^0-9]/)){
+        alert("大分類コードは半角数値で入力してください。");
+        return false;
+      }
+      if(window.confirm('更新しますがよろしいですか？')){
+        return true;
+      }else{
+        return false;
+      }
+    }
+  </script>
+<% end %>

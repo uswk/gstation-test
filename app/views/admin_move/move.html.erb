@@ -1,0 +1,115 @@
+<h1>管理ステーション一括移動確認画面</h1>
+<%= form_tag("admin_move", method: "post", id: "inputform", name: "inputform") do %>
+  <br>
+  <% case @next_flg %>
+    <% when "2" then %>
+      <% if current_user.authority!=9 %>
+        <input type=button value="ステーションの移動を確定する" onClick="fmove_run();" class='btn btn-primary'>&nbsp;&nbsp;
+      <% end %>
+      <%= link_to_function '戻る', 'history.back()', :class => 'btn btn-light', :style=>'text-decoration:none;' %>
+    <% when "3" then %>
+      ステーションの移動処理が完了しました。<br><br>
+      <%= link_to '戻る', admins_path, :class => 'btn btn-light', :style=>'text-decoration:none;' %>
+    <% when "9" then %>
+      移動先ステーションが存在しません。<br><br>
+      <%= link_to_function '戻る', 'history.back()', :class => 'btn btn-light', :style=>'text-decoration:none;' %>
+  <% end %>
+  <% if @next_flg != "9" %>
+    <br><br>
+    <table>
+      <thead>
+        <tr>
+          <th colspan=2>移動元</th>
+        </tr>
+        <tr>
+          <th width=30%>管理者ｺｰﾄﾞ</th>
+          <td width=70%><%= @m_custom_bef.cust_code %></td>
+          <%= hidden_field 'cust_code_bef', '', :value=> @m_custom_bef.cust_code %>
+        </tr>
+        <tr>
+          <th>管理者名</th>
+          <td><%= @m_custom_bef.cust_name %></td>
+        </tr>
+        <tr>
+          <th>管理者種別</th>
+          <td><%= @m_custom_bef.class_name %></td>
+        </tr>
+        <tr>
+          <th>地区</th>
+          <td><%= @m_custom_bef.district %></td>
+        </tr>
+        <tr>
+          <th>地区名</th>
+          <td><%= @m_custom_bef.district_name %></td>
+        </tr>
+      </thead>
+    </table>
+    <br>
+    <table>
+      <thead>
+        <tr>
+          <th colspan=2>移動先</th>
+        </tr>
+        <tr>
+          <th width=30%>管理者ｺｰﾄﾞ</th>
+          <td width=70%><%= @m_custom_aft.cust_code %></td>
+          <%= hidden_field 'cust_code_aft', '', :value=> @m_custom_aft.cust_code %>
+        </tr>
+        <tr>
+          <th>管理者名</th>
+          <td><%= @m_custom_aft.cust_name %></td>
+        </tr>
+        <tr>
+          <th>管理者種別</th>
+          <td><%= @m_custom_aft.class_name %></td>
+        </tr>
+        <tr>
+          <th>地区</th>
+          <td><%= @m_custom_aft.district %></td>
+        </tr>
+        <tr>
+          <th>地区名</th>
+          <td><%= @m_custom_aft.district_name %></td>
+        </tr>
+      </thead>
+    </table>
+    <br>
+    <table>
+      <thead>
+        <tr>
+          <th colspan=3>移動ステーション</th>
+        </tr>
+        <tr>
+          <th>ｽﾃｰｼｮﾝｺｰﾄﾞ</th>
+          <th>ステーション名</th>
+          <th>住所</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% @station_details.each do |station_detail| %>
+          <tr>
+            <td <%= station_detail.bg_color %>><%= station_detail.cust_code %></td>
+            <td <%= station_detail.bg_color %>><%= station_detail.cust_name %></td>
+            <td <%= station_detail.bg_color %>><%= (station_detail.addr_1.to_s + ' ' + station_detail.addr_2.to_s).strip %></td>
+            <%= hidden_field 'move_chk','', :value => station_detail.cust_code %>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+    <br>
+    <%= hidden_field 'next_flg', '', :value => @next_flg %>
+  <% end %>
+<% end %>
+
+<%= content_for :scripts do %>
+  <script type="text/javascript" charset="utf-8">
+    function fmove_run(){
+      
+      if(window.confirm("ステーションの移動を確定しますが、よろしいですか？")){
+        document.inputform.submit();
+      }else{
+        return false;
+      }
+    }
+  </script>
+<% end %>

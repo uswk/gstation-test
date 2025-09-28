@@ -1,0 +1,28 @@
+<h1>インフォメーション</h1>
+<br>
+<div class="info_update">
+
+<dl class="clearFix">
+
+<% @infomations.each do |infomation| %>
+  <dt><%= infomation.info_date %></dt>
+  <dd><%= infomation.info_message.gsub(/\r\n|\r|\n/, "<br>").html_safe %></dd>
+<% end %>
+
+
+</dl>
+
+</div>
+
+
+
+
+<%= form_with(url: "ajax2", local: false, id: "form1", data: {turbo: false}) do |form| %>
+  <input type="hidden" name="format" value="js">
+  <%= form.text_field :title2 %>
+  <br>
+  <%= form.text_area :content2 %>
+  <%= form.submit id: 'form1_submit' %>
+<% end %>
+<button onclick="document.getElementById('form1_submit').click()">click</button>
+<button onclick="document.getElementById('form1').submit()">submit</button>

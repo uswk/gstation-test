@@ -1,0 +1,20 @@
+<h1>ユーザー登録</h1>
+
+<%= form_for(resource, :as => resource_name, :url => registration_path(resource_name)) do |f| %>
+  <%= devise_error_messages! %>
+
+  <div>ユーザーID<br />
+  <%= f.text_field :user_id, :autofocus => true, :maxlength => 10 %></div>
+
+  <div>ユーザー名<br />
+  <%= f.text_field :user_name, :autofocus => true, :maxlength => 50 %></div>
+
+  <div>パスワード<br />
+  <%= f.password_field :password, :maxlength => 25 %></div>
+
+  <div>パスワード確認<br />
+  <%= f.password_field :password_confirmation, :maxlength => 25 %></div>
+  <input type=hidden id="user_authority" name="user[authority]" value=0>
+  <br>
+  <div><%= f.submit "登録" %></div>
+<% end %>

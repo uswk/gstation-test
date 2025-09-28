@@ -1,0 +1,6 @@
+class TChangeShinsei < ActiveRecord::Base
+  #attr_accessible :cust_kbn, :cust_code, :addr_1, :addr_2, :latitude, :longitude, :admin_code, :route_code, :shinsei_kbn, :shinsei_date, :kibou_date, :confirm_flg, :cust_name, :tel_no, :fax_no, :email, :admin_type, :district_code, :district_name, :seq, :use_content, :setai_count, :use_count, :memo
+  validates_presence_of :cust_kbn, :message => "　管理者区分は入力必須です。"
+  validates_presence_of :shinsei_date, :message => "　申請日は入力必須です。"
+  validates_presence_of :kibou_date, :message => "　希望日は入力必須です。"
+end

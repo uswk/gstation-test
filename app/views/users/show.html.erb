@@ -1,0 +1,31 @@
+<h1>ユーザー詳細画面</h1>
+
+<table>
+  <thead>
+    <tr>
+      <th width=30%><strong>ユーザーID</strong></th>
+      <td width=70%><%= @user.user_id %></td>
+    </tr>
+    <tr>
+      <th><strong>ユーザー名</strong></th>
+      <td><%= @user.user_name %></td>
+    </tr>
+    <tr>
+      <th><strong>委託会社</strong></th>
+      <td><%= @user.itaku_name %></td>
+    </tr>
+    <tr>
+      <th><strong>ログイン権限</strong></th>
+      <td><%= @user.login_authority==1? "あり":"なし" %></td>
+    </tr>
+    <tr>
+      <th><strong>権限</strong></th>
+      <td><%= @user.authority_name %></td>
+    </tr>
+  </thead>
+</table>
+<br>
+<% if current_user.authority == 1 %>
+  <%= link_to '編集', edit_user_path(@user), :class => 'btn', :style=>'text-decoration:none;' %>&nbsp;&nbsp;
+<% end %>
+<%= link_to '戻る', users_path, :class => 'btn', :style=>'text-decoration:none;' %>

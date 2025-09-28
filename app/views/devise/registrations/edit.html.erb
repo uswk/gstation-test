@@ -1,0 +1,26 @@
+<h1>パスワード変更画面</h1>
+
+<%= form_for(resource, :as => resource_name, :url => registration_path(resource_name), :html => { :method => :put }) do |f| %>
+  <%= devise_error_messages! %>
+
+  <div>ユーザーID<br />
+  <%= f.text_field :user_id, :autofocus => true, :readonly => true, :disabled => true %></div>
+
+  <div>ユーザー名<br />
+  <%= f.text_field :user_name, :autofocus => true, :readonly => true, :disabled => true %></div>
+
+  <% if devise_mapping.confirmable? && resource.pending_reconfirmation? %>
+    <div>Currently waiting confirmation for: <%= resource.unconfirmed_user_id %></div>
+  <% end %>
+
+  <div>新しいパスワード<br />
+  <%= f.password_field :password, :autocomplete => "off" %></div>
+
+  <div>パスワード確認<br />
+  <%= f.password_field :password_confirmation %></div>
+
+  <div>現在のパスワード<br />
+  <%= f.password_field :current_password %></div>
+  <br>
+  <div><%= f.submit "更新", :class => 'btn btn-primary' %>&nbsp;&nbsp;<%= link_to "戻る", :back, :class => 'btn btn-light', :style=>'text-decoration:none;' %></div>
+<% end %>

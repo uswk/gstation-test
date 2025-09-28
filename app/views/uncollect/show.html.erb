@@ -1,0 +1,64 @@
+<h1>未回収 メモ・写真</h1>
+
+<% if not @t_carrun_memos.blank? %>
+  <table>
+    <thead>
+      <tr>
+        <th width=30%>収集区</th>
+        <td width=70%><%= @t_carrun_memos[0].route_name %></td>
+      </tr>
+      <tr>
+        <th>車両</th>
+        <td><%= @t_carrun_memos[0].car_reg_code %></td>
+      </tr>
+      <tr>
+        <th>出庫日時</th>
+        <td><%= @t_carrun_memos[0].out_timing.try(:strftime, "%Y/%m/%d %H:%M:%S") %></td>
+      </tr>
+      <tr>
+        <th>帰庫日時</th>
+        <td><%= @t_carrun_memos[0].in_timing.try(:strftime, "%Y/%m/%d %H:%M:%S") %></td>
+      </tr>
+      <tr>
+        <th>ステーション</th>
+        <td><%= params[:cust_name] %></td>
+      </tr>
+      <tr>
+        <th>収集時間</th>
+        <td><%= DateTime.parse(params[:finish_timing]).try(:strftime, "%H:%M:%S") %></td>
+      </tr>
+      <tr>
+        <th>未回収理由</th>
+        <td><%= params[:mikaishu_name] %></td>
+      </tr>
+      <tr>
+        <th>未回収数量</th>
+        <td><%= params[:mikaishu_count] %></td>
+      </tr>
+    </thead>
+  </table>
+  <br><br>
+  <% @t_carrun_memos.each do |t_carrun_memo| %>
+    <%= image_tag(t_carrun_memo.memo.url(:medium).to_s) %>
+    <% if current_user.authority!=9 %>
+      <% if (!t_carrun_memo.input_flg.blank? || !t_carrun_memo.in_timing.blank? || current_user.authority==1) && (!@collect_flg.blank? && @collect_flg.to_s!="9") %>
+        <% @delete_url_path = uncollect_path.to_s + "/" + t_carrun_memo.id.to_s + "?collect_flg=" + @collect_flg.to_s + "&finish_timing=" + ERB::Util.url_encode(params[:finish_timing].to_s) + "&cust_kbn=" + ERB::Util.url_encode(params[:cust_kbn].to_s) + "&cust_code=" + ERB::Util.url_encode(params[:cust_code].to_s) + "&cust_name=" + ERB::Util.url_encode(params[:cust_name].to_s) + "&mikaishu_name=" + ERB::Util.url_encode(params[:mikaishu_name].to_s) + "&mikaishu_count=" + ERB::Util.url_encode(params[:mikaishu_count].to_s) + "&carrun_id=" + ERB::Util.url_encode(params[:id].to_s) %>
+        <span style="position: relative; top:-10px; left: -45px;"><%= link_to '削除', @delete_url_path.to_s, method: :delete, data: { confirm: '削除しますがよろしいですか?' }, :style=>"color:white;", :class => 'btn btn-mini btn-danger' %></span>
+      <% end %>
+    <% end %>
+  <% end %>
+<% end %>
+<br><br>
+<% if @collect_flg.blank? %>
+  <% @url_path = uncollect_path.to_s + "?search[date_from]=" + ERB::Util.url_encode(params[:outdate_from].to_s) + "&search[date_to]=" + ERB::Util.url_encode(params[:outdate_to].to_s) + "&search[route]=" + ERB::Util.url_encode(params[:routecode].to_s) + "&search[cust_code]=" + ERB::Util.url_encode(params[:custcode].to_s) + "&search[cust_name]=" + ERB::Util.url_encode(params[:custname].to_s) + "&search[itaku]=" + ERB::Util.url_encode(params[:itakucode].to_s) %>
+  <%= link_to '戻る', @url_path, :class => 'btn' %>
+<% else %>
+  <%= button_tag '閉じる', :onclick => 'return JCollectMemoClose();', :class => 'btn' %>
+<% end %>
+<% content_for :scripts do %>
+<script type="text/javascript" charset="utf-8">
+  function JCollectMemoClose(){
+    window.parent.jQuery('#modal_memo').dialog('close');
+  }
+</script>
+<% end %>

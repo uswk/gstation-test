@@ -1,0 +1,145 @@
+<h1>管理ステーション一括移動指示画面</h1>
+
+<table>
+  <thead>
+    <tr>
+      <th colspan=2>移動元</th>
+    </tr>
+    <tr>
+      <th width=30%>管理者ｺｰﾄﾞ</th>
+      <td width=70%><%= @m_custom.cust_code %></td>
+    </tr>
+    <tr>
+      <th>管理者名</th>
+      <td><%= @m_custom.cust_name %></td>
+    </tr>
+    <tr>
+      <th>管理者種別</th>
+      <td><%= @m_custom.class_name %></td>
+    </tr>
+    <tr>
+      <th>地区</th>
+      <td><%= @m_custom.district %></td>
+    </tr>
+    <tr>
+      <th>地区名</th>
+      <td><%= @m_custom.district_name %></td>
+    </tr>
+    <tr>
+      <th>住所</th>
+      <td><%= (@m_custom.addr_1.to_s + ' ' + @m_custom.addr_2.to_s).strip %></td>
+    </tr>
+    <tr>
+      <th>Ｅメール</th>
+      <td><%= @m_custom.email %></td>
+    </tr>
+    <tr>
+      <th>電話番号</th>
+      <td><%= @m_custom.tel_no %></td>
+    </tr>
+  </thead>
+</table>
+<br>
+<form action="admin_move" data-remote="true" id="move_form" name="move_form" method="post">
+  <table>
+    <thead>
+      <tr>
+        <th colspan=2>移動先</th>
+      </tr>
+      <tr>
+        <th width=30%>管理者ｺｰﾄﾞ</th>
+        <td width=70%>
+          <%= text_field 'admin_code_new', '', :size=>10, :onchange=>'getAdminInfo();' %>
+          <%= link_to "検索", "admins?search_mode=1", :onclick=>"window.open(this.href,'hoge', 'height=600, width=800, resizable=yes, scrollbars=yes'); return false;", :class => 'btn btn-sm btn-light' %>
+        </td>
+      </tr>
+      <tr>
+        <th>名称</th>
+        <td><div id="div_admin_name"></div></td>
+      </tr>
+      <tr>
+        <th>種別</th>
+        <td><div id="div_admin_type"></div></td>
+      </tr>
+    </thead>
+    <%= hidden_field 'chg_flg', '', :value => 1 %>
+  </table>
+</form>
+<br>
+<%= form_tag("admin_move", method: "post", id: "next_form", name: "next_form") do %>
+  <table>
+    <thead>
+      <tr>
+        <th colspan=4>管理ステーション</th>
+      </tr>
+      <tr>
+        <th><input type=checkbox name=move_chk_all id=move_chk_all onClick="fmove_chk_all();"></th>
+        <th>ｽﾃｰｼｮﾝｺｰﾄﾞ</th>
+        <th>ステーション名</th>
+        <th>住所</th>
+      </tr>
+    </thead>
+    <tbody>
+      <% @cnt_no = 0 %>
+      <% @station_details.each do |station_detail| %>
+        <tr>
+          <td align=center><input type=checkbox name=move_chk[] id=move_chk_<%= @cnt_no %> value="<%= station_detail.cust_code %>"></td>
+          <td <%= station_detail.bg_color %>><%= station_detail.cust_code %></td>
+          <td <%= station_detail.bg_color %>><%= station_detail.cust_name %></td>
+          <td <%= station_detail.bg_color %>><%= (station_detail.addr_1.to_s + ' ' + station_detail.addr_2.to_s).strip %></td>
+        </tr>
+        <% @cnt_no = @cnt_no + 1 %>
+      <% end %>
+    </tbody>
+  </table>
+  <br>
+  <%= hidden_field 'next_flg', '', :value => 1 %>
+  <%= hidden_field 'cust_code_bef', '' %>
+  <%= hidden_field 'cust_code_aft', '' %>
+  <input type=button value="確認画面へ進む" onClick="fmove_next_dsp();" class='btn btn-primary'>&nbsp;&nbsp;
+  <%= link_to '戻る', admins_path, :class => 'btn btn-light', :style=>'text-decoration:none;' %>
+<% end %>
+<% content_for :scripts do %>
+  <script type="text/javascript" charset="utf-8">
+    function getAdminInfo() {
+      $("#move_form").submit();
+    }
+    function fmove_chk_all(){
+      var maxCount = eval(<%= @station_details.length %>);
+      
+      for (var i = 0; i < maxCount; i++) { 
+        if(document.getElementById("move_chk_all").checked){
+          document.getElementById("move_chk_"+i).checked = true;
+        }else{
+          document.getElementById("move_chk_"+i).checked = false;
+        }
+      }
+    }
+    function fmove_next_dsp(){
+      var maxCount = eval(<%= @station_details.length %>);
+      var move_chk_flg = 0;
+      
+      if(!document.getElementById("admin_code_new_").value){
+        alert("移動先の管理者が入っていません。");
+        return false;
+      }
+      if(document.getElementById("admin_code_new_").value==<%= @m_custom.cust_code %>){
+        alert("移動元と移動先の管理者が同じです。");
+        return false;
+      }
+      for (var i = 0; i < maxCount; i++) {
+        if(document.getElementById("move_chk_"+i).checked){
+          move_chk_flg=1;
+          break;
+        }
+      }
+      if(move_chk_flg==0){
+        alert("移動するステーションにチェックしてください。");
+        return false;
+      }
+      document.getElementById("cust_code_bef_").value = "<%= @m_custom.cust_code %>";
+      document.getElementById("cust_code_aft_").value = document.getElementById("admin_code_new_").value;
+      $("#next_form").submit();
+    }
+  </script>
+<% end %>

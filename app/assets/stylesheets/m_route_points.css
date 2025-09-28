@@ -1,0 +1,7 @@
+#sortable-table {
+    width: 50%;
+    border-collapse: collapse;
+}
+#sortable-table td, #sortable-table th {
+    border: solid 1px black;
+}

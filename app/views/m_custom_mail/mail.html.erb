@@ -1,0 +1,97 @@
+<h1>メール送信確認画面</h1>
+
+<%= form_with url: m_custom_mail_path, method: :post, id: 'inputform2', html: {name: 'inputform2'} do |f| %>
+<% end %>
+
+<%= form_tag("m_custom_mail", method: "post", id: "inputform", name: "inputform") do %>
+  <br>
+  <%= hidden_field 'next_flg', '', :value => @next_flg %>
+  <% case @next_flg %>
+    <% when "2" then %>
+      <%= submit_tag "メール送信する", :confirm => 'メール送信しますが、よろしいですか？', :disable_with=>'送信処理中...', :class => 'btn btn-primary' %>&nbsp;&nbsp;
+      <%= link_to '戻る', "#", onclick: 'history.back()', class: 'btn btn-light', style: 'text-decoration:none;' %>
+    <% when "3" then %>
+      メール送信が完了しました。<br>
+      <%= link_to '戻る', m_custom_mail_path, :class => 'btn', :style=>'text-decoration:none;' %>
+  <% end %>
+  <br><br>
+  <table cellpadding=2 cellspacing=0 width=98% bordercolorlight="#999999" bordercolordark="#ffffff" border=1>
+    <thead>
+      <tr><th colspan=2>送信内容</th></tr>
+    </thead>
+    <tr>
+      <td align=center>件名</td>
+      <td>
+        <%= @subject_txt %>
+      </td>
+    </tr>
+    <tr>
+      <td align=center>添付ファイル</td>
+      <td>
+        <%= @original_name %>
+      </td>
+    </tr>
+    <tr>
+      <td class="pntTd03" align=center>本文</td>
+      <td class="pntTd00">
+        <input type=hidden name="subject_txt" id="subject_txt" value="<%= @subject_txt %>">
+        <textarea name="message_txt" id="message_txt" cols="80" rows="10" readonly><%= @message_txt %></textarea>
+      </td>
+    </tr>
+    <input type="hidden" name="original_name" id="original_name" value="<%= @original_name %>">
+    <input type="hidden" name="send_path" id="send_path" value="<%= @send_path %>">
+  </table>
+  <br>
+  <table>
+    <thead>
+      <tr>
+        <th>管理者ｺｰﾄﾞ</th>
+        <th>管理者名</th>
+        <th>管理者区分</th>
+        <th>住所</th>
+        <th>Ｅメール</th>
+      </tr>
+    </thead>
+    <tbody>
+      <% @m_customs.each do |m_custom| %>
+          <tr>
+            <td><%= m_custom.cust_code %></td>
+            <td><%= m_custom.cust_name %></td>
+            <td><%= m_custom.type_name %></td>
+            <td><%= m_custom.addr_1 %></td>
+            <td><%= m_custom.email %></td>
+            <%= hidden_field 'mail_chk','', :value => m_custom.cust_code %>
+            <%= hidden_field 'send_cust_name','', :value => m_custom.cust_name %>
+            <%= hidden_field 'send_addr_1','', :value => m_custom.addr_1 %>
+            <%= hidden_field 'send_email','', :value => m_custom.email %>
+          </tr>
+      <% end %>
+    </tbody>
+  </table>
+<% end %>
+<%= content_for :scripts do %>
+  <script type="text/javascript" charset="utf-8">
+    function fmail_send(){
+      
+      if(window.confirm("メール送信しますが、よろしいですか？")){
+        document.inputform.submit();
+      }else{
+        return false;
+      }
+    }
+$(function () {
+  var beforecode;
+
+  $(document).bind('keydown',function(e){
+    var keycode = (e.keyCode ? e.keyCode : e.which);
+    // F5　116　/ Ctrl + r　17+82
+    if (keycode == 116
+      || keycode == 17 && beforecode == 82 
+      || keycode == 82 && beforecode == 17) {
+      return false;
+    }
+    beforecode = keycode;
+  });
+});
+  </script>
+<% end %>

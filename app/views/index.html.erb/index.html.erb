@@ -1,0 +1,307 @@
+<h1>ステーション新規追加・編集画面</h1>
+
+<div id="layer"></div>
+
+<br>
+<div>
+キーワード ： <input id="address" type="textbox" size=50 value="<%= @def_address %>">
+<input type="image" src="images/search_button.png" alt="検索" align="top" onclick="codeAddress()">
+</div>
+<br>ズームレベル：<span id=span_map_zoom_size></span><span id=span_station_display style="display:none; color:red;">&nbsp;【ステーション非表示】※ズームレベル16以上で表示されます</span>
+<% if not @map_zenrin_cid.blank? %>
+  <input type=button value="ゼンリン住宅地図" class='btn' style="position:relative; top:-20px; left:-10px; float: right;" onclick=fzenrin_common_map_display("<%= root_url(only_path: false) %>");>
+<% end %>
+<br>
+<div class="map_container">
+  <div id="map_canvas" style="width:100%; height:500px"></div>
+</div>
+<span>ステーション追加方法：地図上の追加したい位置で右クリックすると登録画面が表示されます。</span>
+<br><br><%= link_to '戻る', m_customs_path(:hold_params=>1,:page=>params[:search_page].to_s,:search_custcode=>params[:search_custcode].to_s,:search_custname=>params[:search_custname].to_s,:search_custaddr=>params[:search_custaddr].to_s,:search_custadmin=>params[:search_custadmin].to_s,:search_routecode=>params[:search_routecode].to_s,:search_custpage=>params[:search_custpage].to_s,:search_delete=>params[:search_delete].to_s), :class => 'btn', :style=>'text-decoration:none;' %>
+<input type=hidden id=routecode name=routecode>
+<div id="modal" style="display:none;">
+  <%= form_tag('m_custom_add', :method =>:post, :name=>'modal_form', :id=>'modal_form', :remote=>true) do %>
+    <br>
+    <table>
+      <tr>
+        <td colspan=2>ステーション名</td>
+        <td colspan=3>
+          <%= text_field 'cust_name_new', '', :size=>30, :maxlength=>50 %>
+          <%= submit_tag "番号取得", :onclick=>"return getStationNo();", :class => 'btn' %>
+        </td>
+      </tr>
+      <tr>
+        <td colspan=2>住所<br>(ｱﾊﾟｰﾄ・ﾏﾝｼｮﾝ名)</td>
+        <td colspan=3>
+          <%= text_field 'address_new', '', :size=>60, :maxlength=>100 %><p></p>
+          <%= text_field 'addr_2_new', '', :size=>60, :maxlength=>100 %>
+        </td>
+      </tr>
+      <tr>
+        <td rowspan=3>管理者</td>
+        <td>コード</td>
+        <td colspan=3>
+          <%= text_field 'admin_code_new', '', :size=>10, :onchange=>'getAdminInfo();' %>
+          <%= link_to "検索", admins_path.to_s + "?search_mode=1", :onclick=>"window.open(this.href,'hoge', 'height=600, width=800, resizable=yes, scrollbars=yes'); return false;", :class => 'btn btn-mini' %>
+        </td>
+      </tr>
+      <tr>
+        <td>名称</td>
+        <td colspan=3><div id="div_admin_name"></div></td>
+      </tr>
+      <tr>
+        <td>種別</td>
+        <td colspan=3><div id="div_admin_type"></div></td>
+      </tr>
+      <tr>
+        <td colspan=2>使用内容</td>
+        <td colspan=3><%= select 'use_content_new', '', @use_contents, { :include_blank => true} %></td>
+      </tr>
+      <tr>
+        <td colspan=2>利用世帯数</td>
+        <td><%= text_field 'setai_count_new', '', :size=>5, :maxlength=>4 %></td>
+        <td>利用人数</td>
+        <td><%= text_field 'use_count_new', '', :size=>5, :maxlength=>4 %></td>
+      </tr>
+      <tr>
+        <td colspan=2>備考</td>
+        <td colspan=3><%= text_area 'memo_new', '', :rows=>2, :maxlength=>100 %></td>
+      </tr>
+      <tr>
+        <td colspan=2>申請日</td>
+        <td><%= text_field 'shinsei_date_new', '', :size=>12, :maxlength=>10, :class => 'datepicker' %></td>
+        <td>収集開始日</td>
+        <td><%= text_field 'start_date_new', '', :size=>12, :maxlength=>10, :class => 'datepicker' %></td>
+      </tr>
+      <tr>
+        <td colspan=2>収集区</td>
+        <td colspan=3><%= select 'route_new', '', @m_route_codes, { :include_blank => true} %></td>
+      </tr>
+      <%= hidden_field 'latitude_new', '' %>
+      <%= hidden_field 'longitude_new', '' %>
+      <%= hidden_field 'tree_no_new', '' %>
+      <%= hidden_field 'route_code_new', '' %>
+      <%= hidden_field 'chg_flg_new', '', :value => 1 %>
+    </table>
+    <br>
+    <center><%= submit_tag "登録", :onclick=>"return getValidityChk();", :class => 'btn btn-primary' %></center>
+  <% end %>
+</div>
+<form action="m_custom_add" data-remote="true" id="marker_form" name="marker_form" method="post">
+  <%= hidden_field 'marker_flg', '', :value => 1 %>
+  <%= hidden_field 'routecode_marker', '' %>
+  <%= hidden_field 'northeast_lat', '' %>
+  <%= hidden_field 'southwest_lat', '' %>
+  <%= hidden_field 'northeast_lng', '' %>
+  <%= hidden_field 'southwest_lng', '' %>
+</form>
+<% content_for :scripts do %>
+  <script src="//maps.googleapis.com/maps/api/js?language=ja&key=<%= @map_key %>"></script>
+  <script src="//google-maps-utility-library-v3.googlecode.com/svn/tags/markerclustererplus/2.0.14/src/markerclusterer_packed.js" type="text/javascript"></script>
+  <script type="text/javascript" charset="utf-8">
+    var marker = new Array();
+    var treeMarker = new Array();
+    var arrpoly = new Array();
+    var poly_color;
+    var iCount=0;
+    var colorCount=0;
+    var routeCodeHkn="";
+    var myLatlng = new google.maps.LatLng("<%= @def_lat %>","<%= @def_lng %>");
+    var mapOptions = {
+      auto_zoom: true,
+      zoom: <%= @def_zoom %>,
+      auto_adjust: false,
+      center: myLatlng,
+      gestureHandling: "greedy",
+      mapTypeId: google.maps.MapTypeId.ROADMAP
+    }
+    var map = new google.maps.Map(document.getElementById("map_canvas"), mapOptions);
+<%
+  if not @m_route_areas.nil?
+    @m_route_areas.each do |m_route_area|
+%>
+      if(routeCodeHkn!="<%= m_route_area.route_code %>"){
+        colorCount+=1;
+        poly_color = poly_color_code[colorCount.toString().slice(-1)];
+        <% if not m_route_area.area_color_value.blank? %>
+          poly_color = "<%= m_route_area.area_color_value.to_s %>";
+        <% end %>
+        routeCodeHkn = "<%= m_route_area.route_code %>";
+      }
+      var latlngData2 = (new Function("return " + "[" + "<%= m_route_area.latlng %>"+ "]"))();
+      var arrCoords2 = new Array();  
+      for (i = 0;i < latlngData2.length;i++) {
+        // 座標地をlatlng値に変換  
+        var latlng2 = new google.maps.LatLng(latlngData2[i].lat, latlngData2[i].lng);  
+        // latlng値を配列に退避  
+        arrCoords2.push(latlng2);  
+      }
+      // ポリゴン(多角形)を生成し、マップに表示  
+      arrpoly[iCount] = new google.maps.Polygon({  
+        map: map,              //マップ
+        paths: arrCoords2,     //閉ループを示す座標列
+        strokeWeight: 2,       //ストローク幅(ピクセル単位)  
+        strokeColor: poly_color,//ストロークの色(16進数形式)
+        strokeOpacity: 1,    //ストロークの不透明度
+        fillColor: poly_color,  //塗りつぶしの色(16進数形式)
+        fillOpacity: 0.1       //塗りつぶしの不透明度(0.0～1.0)
+      });
+
+      //右クリック時
+      google.maps.event.addListener(arrpoly[iCount], 'rightclick', function(object) {
+        getAddress(object.latLng);
+        document.getElementById("addr_2_new_").value = "";
+        document.getElementById("latitude_new_").value = object.latLng.lat();
+        document.getElementById("longitude_new_").value = object.latLng.lng();
+        document.getElementById("route_code_new_").value = document.getElementById("routecode").value;
+        document.getElementById("route_new_").value = "<%= m_route_area.route_code %>";
+        document.getElementById("cust_name_new_").value = "";
+        document.getElementById("admin_code_new_").value = "";
+        document.getElementById("use_content_new_").value = "";
+        document.getElementById("setai_count_new_").value = "";
+        document.getElementById("use_count_new_").value = "";
+        document.getElementById("memo_new_").value = "";
+        document.getElementById("shinsei_date_new_").value = "<%= @now_date %>";
+        document.getElementById("start_date_new_").value = "";
+        document.getElementById("div_admin_name").innerHTML = "";
+        document.getElementById("div_admin_type").innerHTML = "";
+        $('#modal').dialog({
+          title: "ステーション登録　",
+          modal: true,
+          show : "fade",
+          hide : "fade",
+          width: 600,
+          height: 650,
+          open:function(event, ui){
+            $(".ui-dialog-titlebar-close").show();
+          },
+        });
+      });
+      //クリック時
+      google.maps.event.addListener(arrpoly[iCount], 'click', function(object) {
+        alert("収集区　"+ "<%= m_route_area.route_code %>:<%= m_route_area.route_name %>");
+      });
+      iCount += 1;
+<%
+    end
+  end
+%>
+
+    //右クリック時（エリアがない分）
+    google.maps.event.addListener(map, 'rightclick', function(object) {
+      getAddress(object.latLng);
+      document.getElementById("addr_2_new_").value = "";
+      document.getElementById("latitude_new_").value = object.latLng.lat();
+      document.getElementById("longitude_new_").value = object.latLng.lng();
+      document.getElementById("route_code_new_").value = document.getElementById("routecode").value;
+      document.getElementById("route_new_").value = '';
+      document.getElementById("cust_name_new_").value = "";
+      document.getElementById("admin_code_new_").value = "";
+      document.getElementById("use_content_new_").value = "";
+      document.getElementById("setai_count_new_").value = "";
+      document.getElementById("use_count_new_").value = "";
+      document.getElementById("memo_new_").value = "";
+      document.getElementById("shinsei_date_new_").value = "<%= @now_date %>";
+      document.getElementById("start_date_new_").value = "";
+      document.getElementById("div_admin_name").innerHTML = "";
+      document.getElementById("div_admin_type").innerHTML = "";
+      $('#modal').dialog({
+        title: "ステーション登録　",
+        modal: true,
+        show : "fade",
+        hide : "fade",
+        width: 600,
+        height: 650,
+        open:function(event, ui){
+          $(".ui-dialog-titlebar-close").show();
+        },
+      });
+    });
+
+    //地図移動時
+    google.maps.event.addListener(map, 'idle', function(object) {
+      f_marker_dsp();
+    });
+
+    function getAddress(latlng) {
+
+      // ジオコーダのコンストラクタ
+      geocoder = new google.maps.Geocoder();
+      var address = "";
+      
+      // geocodeリクエストを実行。
+      // 第１引数はGeocoderRequest。緯度経度⇒住所の変換時はlatLngプロパティを入れればOK。
+      geocoder.geocode({
+        latLng: latlng
+      }, function(results, status) {
+        if (status == google.maps.GeocoderStatus.OK) {
+          // results.length > 1 で返ってくる場合もありますが・・・。
+          if (results[0].geometry) {
+
+            // 住所を取得(日本の場合だけ「日本, 」を削除)
+            address = results[0].formatted_address.replace(/^日本、/, '');
+            document.getElementById("address_new_").value = address;
+          }
+        } else {
+          document.getElementById("address_new_").value = "";
+          alert("エラーが発生しました。\n※再度実行しても症状が変わらないようでしたら、F5キーなどで画面リロードしてみてください。");
+        }
+      });
+    }
+
+    function getAdminInfo() {
+      document.getElementById("chg_flg_new_").value = 2;
+      $("#modal_form").submit();
+    }
+   function getValidityChk() {
+     //妥当性検査チェック
+     if(document.getElementById('cust_name_new_').value.length<=0){
+       alert("ステーション名は入力必須です。");
+       return false;
+     }
+     if(document.getElementById('address_new_').value.length<=0){
+       alert("住所は入力必須です。");
+       return false;
+     }
+     if(document.getElementById('setai_count_new_').value.length>0 && document.getElementById("setai_count_new_").value.match(/[^0-9]+/)){
+       alert("利用世帯数は半角数字で入力してください。");
+       return false;
+     }
+     if(document.getElementById('use_count_new_').value.length>0 && document.getElementById("use_count_new_").value.match(/[^0-9]+/)){
+       alert("利用人数は半角数字で入力してください。");
+       return false;
+     }
+     if(document.getElementById('shinsei_date_new_').value.length>0 && commonCkDate(document.getElementById('shinsei_date_new_').value)==false){
+       alert("申請日の日付形式が正しくありません。（YYYY/MM/DD）");
+       return false;
+     }
+     if(document.getElementById('start_date_new_').value.length>0 && commonCkDate(document.getElementById('start_date_new_').value)==false){
+       alert("収集開始日の日付形式が正しくありません。（YYYY/MM/DD）");
+       return false;
+     }
+     if(window.confirm('ステーションを登録しますがよろしいですか？')){
+       $(document).on("submit", ".modal_form", function(){
+         $(".modal_form").off();
+         $("#modal_form").submit();
+       });
+     }else{
+       return false;
+     }
+   }
+   function getStationNo(){
+     //ステーションの番号取得
+     if(document.getElementById('cust_name_new_').value.length<=0){
+       alert("ステーション名を入力してください。");
+       return false;
+     }
+     document.getElementById("chg_flg_new_").value = 3;
+     $("#modal_form").submit();
+   }
+
+    //地図再表示
+    function JmapDisplayBlock(){
+      document.getElementById("map_canvas").style.display = "block";
+      //マーカー再表示
+      f_marker_dsp();
+    }
+  </script>
+<% end %>

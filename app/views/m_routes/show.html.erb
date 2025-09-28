@@ -1,0 +1,242 @@
+<% content_for :head do %>
+  <meta name="turbo-prefetch" content="false">
+<% end %>
+<% content_for(:body_attributes) do %>
+  data-turbo="false"
+<% end %>
+<% content_for :js do %>
+  <%= javascript_include_tag "common" %>
+  <%= javascript_include_tag "fixed_midashi" %>
+<% end %>
+
+<h1>収集区基本情報詳細画面</h1>
+
+<table>
+  <thead>
+    <tr>
+      <th width=30%>収集区コード</th>
+      <td width=70%><%= @m_route.route_code %></td>
+    </tr>
+    <tr>
+      <th>収集区名称</th>
+      <td><%= @m_route.route_name %></td>
+    </tr>
+    <tr>
+      <th>ごみの種類ごとの数量入力</th>
+      <td><%= @m_route.use_item_flg==1 ? "する":"しない" %></td>
+    </tr>
+    <tr>
+      <th>エリアカラー</th>
+      <td><%= @m_route.area_color_name %></td>
+    </tr>
+  </thead>
+</table>
+<br>
+
+<table>
+  <thead>
+    <tr>
+      <th>週</th>
+      <th>収集曜日</th>
+      <th>ごみ種類</th>
+      <th>単位</th>
+      <th>委託会社</th>
+    </td>
+  </thead>
+  <tbody>
+    <% @m_route_rundates.each do |m_route_rundate| %>
+      <tr>
+        <td><%= m_route_rundate.run_week_name %></td>
+        <td><%= m_route_rundate.run_yobi_name %></td>
+        <td><%= m_route_rundate.item_name %></td>
+        <td><%= m_route_rundate.unit_name %></td>
+        <td><%= m_route_rundate.itaku_name %></td>
+      </tr>
+    <% end %>
+  </tbody>
+</table>
+<br>
+<table style="table-layout:fixed;">
+  <tr>
+    <td valign="top" style="width:40%;">
+      <div id='overflow' style='overflow: scroll; height:50vh'>
+        <table _fixedhead="rows:1; cols:3; div-auto-size: none;">
+          <thead>
+            <tr>
+              <th><nobr>SEQ</nobr></th>
+              <th><nobr>ｽﾃｰｼｮﾝID</nobr></th>
+              <th><nobr>ステーション名</nobr></th>
+              <th><nobr>住所</nobr></th>
+              <th><nobr>管理者名</nobr></th>
+            </tr>
+          </thead>
+          <tbody>
+            <% @m_route_points.each do |m_route_point| %>
+              <tr style="background-color:<%= m_route_point.bgcolor %>;" id=tr_<%= m_route_point.tree_no %> onClick="mClickTR(this, '<%= m_route_point.bgcolor %>')" onmouseover="mouseOverTR(this, '<%= m_route_point.bgcolor %>');" onmouseout="mouseOutTR(this, '<%= m_route_point.bgcolor %>');">
+                <td align=right><nobr><%= m_route_point.tree_no %></nobr></td>
+                <td><nobr><%= m_route_point.cust_code %></nobr></td>
+                <td><nobr><%= m_route_point.cust_name %></nobr></td>
+                <td><nobr><%= (m_route_point.addr_1.to_s + ' ' + m_route_point.addr_2.to_s).strip %></nobr></td>
+                <td><nobr><%= m_route_point.admin_name %></nobr></td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+    </td>
+    <% if not @map_zenrin_cid.blank? %>
+      <input type=button value="ゼンリン住宅地図" class='btn' style="position:relative; top:-5px; left:-10px; float: right;" onclick=fzenrin_common_map_display("<%= root_url(only_path: false) %>");>
+    <% end %>
+    <td valign="top" style="style="width:60%;">
+      <div class="map_container">
+        <div id="map_canvas" style="width:100%; height:50vh"></div>
+      </div>
+    </td>
+  </tr>
+</table>
+<br>
+<% if current_user.authority!=9 %>
+  <%= link_to '編集', edit_m_route_path(@m_route, :hold_params=>1,:search_page=>params[:search_page].to_s,:search_routecode=>params[:search_routecode].to_s,:search_routename=>params[:search_routename].to_s,:search_itaku=>params[:search_itaku].to_s,:search_delete=>params[:search_delete].to_s), :class => 'btn', :style=>'text-decoration:none;' %>&nbsp;&nbsp;
+<% end %>
+<%= link_to '戻る', m_routes_path(:hold_params=>1,:page=>params[:search_page].to_s,:search_routecode=>params[:search_routecode].to_s,:search_routename=>params[:search_routename].to_s,:search_itaku=>params[:search_itaku].to_s,:search_delete=>params[:search_delete].to_s), :class => 'btn', :style=>'text-decoration:none;' %>
+<% content_for :scripts do %>
+  <script src="//maps.googleapis.com/maps/api/js?language=ja&key=<%= @map_key %>"></script>
+  <script src="//google-maps-utility-library-v3.googlecode.com/svn/tags/markerclustererplus/2.0.14/src/markerclusterer_packed.js" type="text/javascript"></script>
+  <script src="https://unpkg.com/@googlemaps/markerwithlabel/dist/index.min.js"></script>
+  <script type="text/javascript" charset="utf-8">
+    var gActiveobj;
+    var gActivecolor;
+    var makerIndex;
+    var myLatlng;
+    var contentString;
+    var icon = "../images/marker_icon.png";
+    var tree_id=0;
+    var markers = new Array();
+    var treeMarker = new Array();
+    var infowindow = new Array();
+    var latlngData2;
+    var arrCoords2;
+    var arrpoly2 = new Array();
+    var poly_color = poly_color_code[0];
+    var iCount = 0;
+
+    //テーブルヘッダ固定用プラグイン
+    FixedMidashi.create();
+    
+    myLatlng = new google.maps.LatLng("<%= @def_lat %>","<%= @def_lng %>");
+    var mapOptions = {
+      auto_zoom: false,
+      zoom: 14,
+      auto_adjust: false,
+      center: myLatlng,
+      gestureHandling: "greedy",
+      mapTypeId: google.maps.MapTypeId.ROADMAP
+    }
+    var map = new google.maps.Map(document.getElementById("map_canvas"), mapOptions);
+    
+    google.maps.event.addDomListener(window, 'load', function()
+    {
+      <% if not @m_route_points.blank? %>
+        <% @m_route_points.each do |m_route_point| %>
+          var tree_no = "<%= m_route_point.tree_no.to_s %>";
+          var id = "<%= m_route_point.custom_id %>";
+          var cust_kbn = "<%= m_route_point.cust_kbn %>";
+          var cust_code = "<%= m_route_point.cust_code %>";
+          
+          contentString = "<div style='width:450px; height:160px;'><h3><%= m_route_point.cust_code.to_s %>:<%= m_route_point.cust_name.to_s %></h3><%= (m_route_point.addr_1.to_s + ' ' + m_route_point.addr_2.to_s).strip %><br><br>管理者名：<%= m_route_point.admin_name.to_s %><br>電話番号：<%= m_route_point.admin_tel.to_s %>";
+          contentString = contentString + "<br><br>";
+          contentString = contentString + "&nbsp;&nbsp;<input type=button value='メモ' onclick=fcustom_memo_common('" + cust_code + "','<%= root_url(only_path: false) %>'); class='btn'>";
+          contentString = contentString + "&nbsp;&nbsp;<input type=button value='収集履歴' onclick=fcustom_carrun_common('" + cust_kbn + "','" + cust_code + "','<%= root_url(only_path: false) %>'); class='btn'>";
+          contentString = contentString + "&nbsp;&nbsp;<input type=button value='詳細' onclick=fcustom_detail_common('" + id + "','<%= root_url(only_path: false) %>',''); class='btn'>";
+          contentString = contentString + "</div>";
+          myLatlng = new google.maps.LatLng("<%= m_route_point.latitude.to_s %>","<%= m_route_point.longitude.to_s %>");
+          
+          infowindow[tree_id] = new google.maps.InfoWindow({
+            content: contentString,
+            disableAutoPan: true
+          });
+          markers[tree_id] = new google.maps.Marker({
+            position: myLatlng,
+            icon: icon,
+            title: ""+tree_id,
+            map: map,
+            zIndex: 1
+          });
+          treeMarker[tree_id] = new markerWithLabel.MarkerWithLabel({
+            position: myLatlng,
+            map: map,
+            icon: {
+              path: google.maps.SymbolPath.BACKWARD_OPEN_ARROW,
+              scale: 0,
+            },
+            labelContent: ""+tree_no,
+            labelAnchor: new google.maps.Point(-3, -14),
+            labelClass: "markerwithlabel-labels",
+            labelStyle: { opacity: 1.0 },
+            zIndex: 2,
+            clickable: false
+          });
+          google.maps.event.addListener(markers[tree_id], 'click', function() {
+            //情報ウィンドウ閉じる
+            for(var i = 0; i < tree_id; i++){
+              infowindow[i].close();
+            }
+            infowindow[eval(this.getTitle())].open(map,markers[eval(this.getTitle())]);
+          });
+          
+          tree_id = tree_id + 1;
+        <% end %>
+      <% end %>
+      <% if not @m_route_areas.nil? %>
+        <% if not @m_route1.area_color_value.blank? %>
+          poly_color = "<%= @m_route1.area_color_value.to_s %>";
+        <% end %>
+        <% @m_route_areas.each do |m_route_area| %>
+          latlngData2 = (new Function("return " + "[" + "<%= m_route_area.latlng %>" + "]"))();
+          arrCoords2 = new Array();  
+          for (i = 0;i < latlngData2.length;i++) {  
+            // 座標地をlatlng値に変換  
+            var latlng2 = new google.maps.LatLng(latlngData2[i].lat, latlngData2[i].lng);  
+            // latlng値を配列に退避  
+            arrCoords2.push(latlng2);
+          }
+          // ポリゴン(多角形)を生成し、マップに表示  
+          arrpoly2[iCount] = new google.maps.Polygon({  
+            map: map,              //マップ  
+            paths: arrCoords2,     //閉ループを示す座標列  
+            strokeWeight: 2,       //ストローク幅(ピクセル単位)  
+            strokeColor: poly_color,//ストロークの色(16進数形式)  
+            strokeOpacity: 1,    //ストロークの不透明度  
+            fillColor: poly_color,  //塗りつぶしの色(16進数形式)  
+            fillOpacity: 0.05       //塗りつぶしの不透明度(0.0～1.0)  
+          });
+          iCount += 1;
+        <% end %>
+      <% end %>
+    });
+    function mouseOverTR(obj, bgcolor) {
+      obj.style.backgroundColor = "#FFFF55";
+    }
+    function mouseOutTR(obj, bgcolor) {
+      if (obj!=gActiveobj){
+        obj.style.backgroundColor = bgcolor;
+      }
+    }
+    function mClickTR(obj, bgcolor) {
+      if (gActiveobj){
+        gActiveobj.style.backgroundColor = gActivecolor;
+      }
+      gActiveobj = obj;
+      gActivecolor = bgcolor;
+      obj.style.backgroundColor = "#FFFF55";
+      var rowindex = obj.rowIndex-1
+      var marker = markers[rowindex];
+      var pos = new google.maps.LatLng(marker.position.lat(),marker.position.lng());
+      map.panTo(pos);
+      for (var i = 0; i < markers.length; ++i) { 
+        infowindow[i].close();
+      }
+      infowindow[rowindex].open(map,markers[rowindex]);
+    }
+  </script>
+<% end %>

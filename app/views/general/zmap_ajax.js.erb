@@ -1,0 +1,56 @@
+    var cust_code;
+    var cust_name;
+    var finish_timing;
+    var info;
+    var seq_id = 0;
+    var contentString;
+    var icon;
+    var infowindow = new Array();
+<%
+  if not @m_customs.nil?
+    @m_customs.each do |custom|
+%>
+      cust_code = "<%= custom.cust_code %>";
+      cust_name = "<%= custom.cust_name %>";
+      latitude = "<%= custom.latitude %>";
+      longitude = "<%= custom.longitude %>";
+      finish_timing = "<%= custom.finish_timing %>";
+      info = "<%= custom.info %>";
+      contentString = "<div style='width:450px; height:200px;'><h3 class=headding01>" + cust_name + "</h3>" + decodeURIComponent(info) + "</div>";
+      if(!finish_timing){
+        icon = "images/marker_icon.png";
+      }else{
+        icon = "images/marker_icon2.png";
+      }
+
+      latlon = new ZDC.LatLon(lat_world2japan(latitude,longitude),lng_world2japan(latitude,longitude));
+      mrk[seq_id] = new ZDC.Marker(latlon,{
+        custom: {
+          base : {
+            src: icon
+          }
+        }
+      });
+      /* マーカを追加 */
+      map2.addWidget(mrk[seq_id]);
+      
+      mrk[seq_id].setTitle(""+seq_id);
+      
+      /* 吹き出しを作成 */
+      msg[seq_id] = new ZDC.MsgInfo(latlon,
+          {
+              html: contentString,
+              offset: ZDC.Pixel(0, -18)
+          });
+      /* 吹き出しを追加 */
+      map2.addWidget(msg[seq_id]);
+
+      /* マーカーがクリックされたら吹き出しを表示する関数を実行させる */
+      ZDC.bind(mrk[seq_id], ZDC.MARKER_CLICK, {seq_id: seq_id}, getInfo);
+
+      seq_id += 1;
+<%
+    end
+  end
+%>
+$('#layer').hide();

@@ -1,0 +1,3 @@
+class TCustomMemo < ActiveRecord::Base
+  #attr_accessible :cust_kbn, :cust_code, :memo_time, :memo, :user_id, :itaku_code, :itaku_flg
+end

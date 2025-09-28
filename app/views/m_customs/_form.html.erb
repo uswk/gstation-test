@@ -1,0 +1,206 @@
+<%= form_for(@m_custom, :html => {:name => "input_form"}) do |f| %>
+  <% if @m_custom.errors.any? %>
+    <div id="error_explanation">
+      <h2><%= pluralize(@m_custom.errors.count, "error") %> prohibited this m_custom from being saved:</h2>
+
+      <ul>
+      <% @m_custom.errors.full_messages.each do |msg| %>
+        <li><%= msg %></li>
+      <% end %>
+      </ul>
+    </div>
+  <% end %>
+  <%= f.hidden_field :cust_kbn %>
+  <%= f.hidden_field :cust_code %>
+  <% if params[:lat_del] %>
+    <input type=hidden id=lat_del name=lat_del value="<%= params[:lat_del] %>">
+    <input type=hidden id=lng_del name=lng_del value="<%= params[:lng_del] %>">
+    <input type=hidden id=zoom_del name=zoom_del value="<%= params[:zoom_del] %>">
+    <input type=hidden id=routecode name=routecode value="<%= params[:routecode] %>">
+  <% end %>
+  <input type=hidden id=header_no_dsp name=header_no_dsp value="<%= params[:header_no_dsp] %>">
+
+  <table>
+    <thead>
+      <tr>
+        <th colspan=2>ステーションコード</th>
+        <td><%= @m_custom.cust_code %></td>
+          <% if not @map_zenrin_cid.blank? %>
+            <input type=button value="ゼンリン住宅地図" class='btn' style="position:relative; top:-5px; left:-10px; float: right;" onclick=fzenrin_common_map_display("<%= root_url(only_path: false) %>");>
+          <% end %>
+        <td width=40% rowspan=17 valign="top">
+          <div class="map_container" style="width:96%;">
+            <div id="map_canvas" style="width:100%; height:500px"></div>
+          </div>
+          <span style="font-size:10px;">※マーカーをドラッグした状態でマウスを動かすと位置を移動することができます。</span>
+        </td>
+      </tr>
+      <tr>
+        <th colspan=2>ステーション名</th>
+        <td><%= f.text_field :cust_name, :size=>30, :maxlength=>50 %></td>
+      </tr>
+      <tr>
+        <th colspan=2>住所</th>
+        <td>
+          <%= f.text_field :addr_1, :size=>40, :maxlength=>100 %>
+          <input type=button value="緯度経度取得" onClick="JlatlngChange()" class='btn btn-mini'>
+          <!-- <input type=button value="住所取得" onClick="JlatlngAddressChange()" class='btn btn-mini'> -->
+        </td>
+      </tr>
+      <tr>
+        <th colspan=2>ｱﾊﾟｰﾄ・ﾏﾝｼｮﾝ・ﾋﾞﾙ名</th>
+        <td><%= f.text_field :addr_2, :size=>40, :maxlength=>100 %></td>
+      </tr>
+      <tr>
+        <th rowspan=3>管理者</th>
+        <th>コード</th>
+        <td>
+          <%= f.text_field :admin_code, :size=>10, :onchange=>'getAdminInfo();' %>
+          <%= link_to "検索", admins_path.to_s + "?search_mode=1", :onclick=>"window.open(this.href,'hoge', 'height=600, width=800, resizable=yes, scrollbars=yes'); return false;", :class => 'btn btn-mini' %>
+        </td>
+      </tr>
+      <tr>
+        <th>名称</th>
+        <td><div id="div_admin_name"><%= @m_custom.admin_name %></div></td>
+      </tr>
+      <tr>
+        <th>種別</th>
+        <td><div id="div_admin_type"><%= @m_custom.type_name %></div></td>
+      </tr>
+      <tr>
+        <th colspan=2>使用内容</th>
+        <td><%= f.select :use_content, @use_contents, { :include_blank => true} %></td>
+      </tr>
+      <tr>
+        <th colspan=2>利用世帯数</th>
+        <td><%= f.text_field :setai_count, :size=>5, :maxlength=>4 %></td>
+      </tr>
+      <tr>
+        <th colspan=2>利用人数</th>
+        <td><%= f.text_field :use_count, :size=>5, :maxlength=>4 %></td>
+      </tr>
+      <tr>
+        <th colspan=2>備考</th>
+        <td><%= f.text_area :memo, :rows=>2, :maxlength=>100 %></td>
+      </tr>
+      <tr>
+        <th colspan=2>添付画像</th>
+        <td>
+          <div class="field">
+            <%= f.file_field :icon, :accept=>"image/png, image/gif, image/jpg, image/jpeg" %>
+          </div>
+          <% if !@m_custom.icon.blank? %>
+            <%= image_tag @m_custom.icon_file_name.nil? ? nil : @m_custom.icon.url(:medium) %>
+            <%= check_box 'icon', 'delete' %> 画像削除
+          <% end %>
+        </td>
+      </tr>
+      <tr>
+        <th colspan=2>申請日</th>
+        <td><%= f.text_field :shinsei_date, :value => (f.object.shinsei_date.blank? ? '' : f.object.shinsei_date.strftime('%Y/%m/%d')), :size=>12, :maxlength=>10, :class => 'datepicker_sub' %></td>
+      </tr>
+      <tr>
+        <th colspan=2>収集開始日</th>
+        <td><%= f.text_field :start_date, :value => (f.object.start_date.blank? ? '' : f.object.start_date.strftime('%Y/%m/%d')), :size=>12, :maxlength=>10, :class => 'datepicker_sub' %></td>
+      </tr>
+      <tr>
+        <th colspan=2>廃止届出受付日</th>
+        <td><%= f.text_field :haishi_date, :value => (f.object.haishi_date.blank? ? '' : f.object.haishi_date.strftime('%Y/%m/%d')), :size=>12, :maxlength=>10, :class => 'datepicker_sub' %></td>
+      </tr>
+      <tr>
+        <th colspan=2>集配停止日</th>
+        <td><%= f.text_field :end_date, :value => (f.object.end_date.blank? ? '' : f.object.end_date.strftime('%Y/%m/%d')), :size=>12, :maxlength=>10, :class => 'datepicker_sub' %></td>
+      </tr>
+      <tr>
+        <th colspan=2>緯度</th>
+        <td><%= f.text_field :latitude, :readonly=>true %></td>
+      </tr>
+      <tr>
+        <th colspan=2>経度</th>
+        <td><%= f.text_field :longitude, :readonly=>true %></td>
+      </tr>
+    </thead>
+  </table>
+
+  <br>
+  <%= hidden_field :m_custom, :delete_flg, :value => @m_custom.delete_flg.nil? ? 0 : @m_custom.delete_flg %>
+  <%= hidden_field_tag :hold_params, 1 %>
+  <%= hidden_field_tag :search_page, params[:search_page].to_s %>
+  <%= hidden_field_tag :search_custcode, params[:search_custcode].to_s %>
+  <%= hidden_field_tag :search_custname, params[:search_custname].to_s %>
+  <%= hidden_field_tag :search_custaddr, params[:search_custaddr].to_s %>
+  <%= hidden_field_tag :search_custadmin, params[:search_custadmin].to_s %>
+  <%= hidden_field_tag :search_routecode, params[:search_routecode].to_s %>
+  <%= hidden_field_tag :search_custpage, params[:search_custpage].to_s %>
+  <%= hidden_field_tag :search_delete, params[:search_delete].to_s %>
+
+  <% if not @routecode %>
+    <table>
+      <thead>
+        <tr>
+          <th width=70%>収集区</th>
+          <th width=30%> </th>
+        </tr>
+      </thead>
+    </table>
+    <% @cnt_no = 0 %>
+    <% @m_route_points.each do |m_route_point| %>
+      <div id=tree_no_<%= @cnt_no %>>
+        <table>
+          <tbody>
+            <tr>
+              <td width=70%>
+                <% if (current_user.itaku_code.blank?) || (not m_route_point.itaku_check.blank?) %>
+                  <%= select 'route_code', '', @m_routes, {:selected => m_route_point.route_code} %>
+                <% else %>
+                  ※他委託会社分※
+                  <%= hidden_field :route_code, '', :value => m_route_point.route_code %>
+                <% end %>
+              </td>
+              <td width=30% align=center>
+                <% if (current_user.itaku_code.blank?) || (not m_route_point.itaku_check.blank?) %>
+                  <input type=button value="削除" onClick="fcustom_route_dlt(<%= @cnt_no %>)" class='btn btn-mini btn-danger'>
+                <% end %>
+              </td>
+              <%= hidden_field 'route_code_old', '', :value => m_route_point.route_code %>
+              <%= hidden_field 'tree_no_old', '', :value => m_route_point.tree_no %>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <% @cnt_no = @cnt_no + 1 %>
+    <% end %>
+    <span id=route_tag_sub></span>
+    <input type=hidden id=m_route_cnt_no name=cnt_no value="<%= @cnt_no + 1 %>">
+  <% end %>
+<% end %>
+
+<% if not @routecode %>
+  <br>
+  新規レコード
+  <form action="m_routes" id="result_form" name="result_form" data-remote="true" method="post">
+    <div id=tree_no_add>
+      <table>
+        <tr>
+          <td width=70%><%= select 'route_code_new', '', @m_routes, { :include_blank => true} %></td>
+          <td width=30% align=center><input type=button value="行追加" onclick=fcustom_route_add("<%= ERB::Util.url_encode(@m_routes) %>"); class='btn btn-mini'></td>
+        </tr>
+      </table>
+    </div>
+  </form>
+<% end %>
+
+<%= form_tag("../../m_customs", :name => "modal_form", :id => "modal_form", :remote => true, html: {style: 'display:none'}) do %>
+  <%= hidden_field 'admin_code_new', '' %>
+  <%= hidden_field 'chg_flg', '', :value => 1 %>
+<% end %>
+<%= form_tag("../../m_customs", :name => "modal_chk_form", :id => "modal_chk_form", :remote => true, html: {style: 'display:none'}) do %>
+  <%= hidden_field 'admin_code_chk', '' %>
+  <%= hidden_field 'chg_flg', '', :value => 2 %>
+  <%= submit_tag "", id: "modal_chk_form_submit" %>
+<% end %>
+<br>
+<div class="actions">
+  <% if current_user.authority!=9 %>
+    <input type=button value="更新" onClick="getAdminChk();" class='btn btn-primary'>&nbsp;&nbsp;
+  <% end %>

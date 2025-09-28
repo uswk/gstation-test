@@ -1,0 +1,118 @@
+<h1>管理者一覧画面</h1>
+
+<table>
+  <thead>
+  <%= form_tag("admins", method: "get") do %>
+    <tr>
+      <th>管理者名</th>
+      <td><%= text_field 'search_name', 'query', :size => 50, :value => params[:search_name].nil? ? "" : params[:search_name][:query] %></td>
+      <th>管理者ｺｰﾄﾞ</th>
+      <td><%= text_field 'search', 'query', :size => 20, :value => params[:search].nil? ? "" : params[:search][:query]  %></td>
+    </tr>
+    <tr>
+      <th>Ｅメール</th>
+      <td><%= text_field 'search_email', 'query', :size => 50, :value => params[:search_email].nil? ? "" : params[:search_email][:query], class: 'form-control' %></td>
+      <th>電話番号</th>
+      <td><%= text_field 'search_tel', 'query', :size => 20, :value => params[:search_tel].nil? ? "" : params[:search_tel][:query] %></td>
+    </tr>
+    <tr>
+      <th>種別</th>
+      <td>
+        <%= radio_button 'search_type', 'query', '', {:checked => true} %>指定しない
+        <% @admin_types.each do |admin_type| %>
+          <%= radio_button 'search_type', 'query', admin_type.class_code, {:checked => params[:search_type].nil? ? false : params[:search_type][:query].to_i==admin_type.class_code ? true : false} %><%= admin_type.class_name %>
+        <% end %>
+      </td>
+      <th>地区</th>
+      <td><%= select 'search_district', 'query', @districts, { :include_blank => true, :selected => params[:search_district].nil? ? "" : params[:search_district][:query]} %></td>
+    </tr>
+    <tr>
+      <th>削除のみ ： <%= check_box 'search_delete', 'query', {:checked => @blndelete} %></th>
+      <td colspan=3 align=center><%= submit_tag "検索", :class => 'btn btn-primary' %></td>
+    <tr>
+    <% if @search_mode.to_s=="1" %>
+      <%= hidden_field_tag 'search_mode', 1 %>
+    <% end %>
+  <% end %>
+  </thead>
+</table>
+<br>
+<% if @search_mode.to_s == "1" %>
+  <%= link_to '閉じる', '', :onclick => "window.close(); return false;", :class => 'btn btn-light', :style=>'text-decoration:none;' %>&nbsp;&nbsp;
+<% end %>
+<% if current_user.authority!=9 %>
+  <%= link_to '追加', new_admin_path(:search_mode=>@search_mode), :style=>"color:white; text-decoration:none;", :class => 'btn btn-primary' %>
+<% end %>
+
+<br><br>
+<%= paginate(@m_customs) %>
+<table>
+  <thead>
+    <tr>
+      <th>管理者ｺｰﾄﾞ</th>
+      <th>管理者名</th>
+      <th>管理者種別</th>
+      <th>地区</th>
+      <th>地区名</th>
+      <th>SEQ</th>
+      <th>住所</th>
+      <th>Ｅメール</th>
+      <th>電話番号</th>
+      <th></th>
+      <% if @search_mode.to_s != "1" %>
+        <% if current_user.authority!=9 %>
+          <th></th>
+          <th></th>
+          <th></th>
+        <% end %>
+      <% end %>
+    </tr>
+  </thead>
+
+  <tbody>
+    <% @m_customs.each do |m_custom| %>
+      <tr>
+        <td <%= @bgcolor_td %>><%= m_custom.cust_code %></td>
+        <td <%= @bgcolor_td %>><%= m_custom.cust_name %></td>
+        <td <%= @bgcolor_td %>><%= m_custom.class_name %></td>
+        <td <%= @bgcolor_td %>><%= m_custom.district %></td>
+        <td <%= @bgcolor_td %>><%= m_custom.district_name %></td>
+        <td <%= @bgcolor_td %> align=right><%= m_custom.seq %></td>
+        <td <%= @bgcolor_td %>><%= (m_custom.addr_1.to_s + ' ' + m_custom.addr_2.to_s).strip %></td>
+        <td <%= @bgcolor_td %>><%= m_custom.email %></td>
+        <td <%= @bgcolor_td %>><%= m_custom.tel_no %></td>
+        <% if @search_mode.to_s == "1" %>
+          <td <%= @bgcolor_td %>><%= link_to '選択', m_custom, :onclick => "selectAdmin('" + m_custom.id.to_s + "','" + m_custom.cust_code.to_s + "','" + m_custom.cust_name.to_s + "','" + m_custom.class_name.to_s + "'); return false;", :class => 'btn btn-light btn-sm' %></td>
+        <% else %>
+          <td <%= @bgcolor_td %>><%= link_to '詳細', m_custom, :href => admins_path.to_s + "/" + m_custom.id.to_s, :class => 'btn btn-link btn-sm' %></td>
+          <% if current_user.authority!=9 %>
+            <td <%= @bgcolor_td %>><%= link_to '編集', edit_admin_path(m_custom), :class => 'btn btn-sm' %></td>
+            <td <%= @bgcolor_td %>><%= link_to '移動', admin_move_path(:cust_code => m_custom.cust_code), :class => 'btn btn-link btn-sm' %></td>
+            <% if @blndelete == false %>
+              <td <%= @bgcolor_td %>><%= link_to '削除', m_custom, :href => admins_path.to_s + "/" + m_custom.id.to_s, method: :delete, data: { confirm: '削除しますがよろしいですか?' }, :style=>"color:white;", :class => 'btn btn-sm btn-danger' %></td>
+            <% else %>
+              <td <%= @bgcolor_td %>><%= link_to '復活', m_custom, :href => admins_path.to_s + "/" + m_custom.id.to_s, method: :delete, data: { confirm: '削除を復活しますがよろしいですか?' }, :style=>"color:white;", :class => 'btn btn-sm btn-danger' %></td>
+            <% end %>
+          <% end %>
+        <% end %>
+      </tr>
+    <% end %>
+  </tbody>
+</table>
+<% content_for :scripts do %>
+  <script type="text/javascript" charset="utf-8">
+  function selectAdmin(id, cust_code, cust_name, admin_type){
+    if(opener.document.getElementById("m_custom_admin_code")){
+      opener.document.getElementById("m_custom_admin_code").value=cust_code;
+    }else if(opener.document.getElementById("t_change_shinsei_admin_code")){
+      opener.document.getElementById("t_change_shinsei_admin_code").value=cust_code;
+      opener.document.getElementById("search_admin_id").value=id;
+    }else{
+      opener.document.getElementById("admin_code_new_").value=cust_code;
+    }
+    opener.document.getElementById("div_admin_name").innerHTML=cust_name;
+    opener.document.getElementById("div_admin_type").innerHTML=admin_type;
+    window.close();
+  }
+  </script>
+<% end %>

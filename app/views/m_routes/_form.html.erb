@@ -1,0 +1,195 @@
+<%= form_for(@m_route, :html => {:name => "input_form"}) do |f| %>
+  <% if @m_route.errors.any? %>
+    <div id="error_explanation">
+      <h2><%= pluralize(@m_route.errors.count, "error") %> prohibited this m_route from being saved:</h2>
+
+      <ul>
+      <% @m_route.errors.full_messages.each do |msg| %>
+        <li><%= msg %></li>
+      <% end %>
+      </ul>
+    </div>
+  <% end %>
+
+  <table>
+    <thead>
+      <tr>
+        <th>収集区コード</th>
+        <% if @action_form=='update' %>
+          <td><%= f.text_field :route_code, :readonly => true, :disabled => true, :maxlength=>10 %></td>
+        <% else %>
+          <td><%= f.text_field :route_code, :maxlength=>10 %></td>
+        <% end %>
+      </tr>
+      <tr>
+        <th>収集区名称</th>
+        <td><%= f.text_field :route_name, :maxlength=>50 %></td>
+      </tr>
+      <tr>
+        <th>ごみの種類ごとの数量入力</th>
+        <td>
+          <%= f.radio_button :use_item_flg, 0, :checked=>"checked" %>
+          <%= f.label :use_item_flg, :しない, :value=>0 %>
+          &nbsp;&nbsp;
+          <% @check_flg = 0 %>
+          <% if not @m_route_moto.nil? %>
+            <% if @m_route_moto.use_item_flg.to_s=="1" %>
+              <% @check_flg = 1%>
+            <% end %>
+          <% end %>
+          <% if @check_flg == 1 %>
+            <%= f.radio_button :use_item_flg, 1, :checked=>"checked" %>
+          <% else %>
+            <%= f.radio_button :use_item_flg, 1 %>
+          <% end %>
+          <%= f.label :use_item_flg, :する, :value=>1 %>
+        </td>
+      </tr>
+      <tr>
+        <th>エリアカラー</th>
+        <td><%= f.select :area_color, @area_colors, { :include_blank => true} %></td>
+      </tr>
+    </thead>
+  </table>
+  <br>
+  
+  <%= hidden_field :m_route, :delete_flg, :value => @m_route.delete_flg.nil? ? 0 : @m_route.delete_flg %>
+  <table>
+    <thead>
+      <tr>
+        <th width=10%>収集週</th>
+        <th width=15%>収集曜日</th>
+        <th width=25%>ごみ種類</th>
+        <% if not @unit_kbns.blank? %>
+          <th width=10%>単位</th>
+        <% end %>
+        <% if current_user.itaku_code.blank? %>
+          <th width=30%>委託会社</th>
+        <% end %>
+        <th width=10%> </th>
+      </td>
+    </thead>
+  </table>
+  <tbody>
+    <div id="sortable-div">
+      <% @cnt_no = 0 %>
+      <% if @upd_flg==1 %>
+        <% params[:cnt_no].to_i.times do |i| %>
+          <% if not params[:run_yobi].nil? %>
+            <% if not params[:run_yobi][i].nil? %>
+              <div id=tree_no_<%= @cnt_no + 1 %>>
+                <table>
+                  <tr>
+                    <% if current_user.itaku_code.blank? %>
+                      <td width=30%><%= select 'itaku_code', '', @itaku_codes, { :include_blank => true, :selected => params[:itaku_code][i]} %></td>
+                    <% else %>
+                      <%= hidden_field :itaku_code, '', :value => params[:itaku_code][i] %>
+                    <% end %>
+                    <% if current_user.itaku_code.blank? || current_user.itaku_code.to_s == params[:itaku_code][i].to_s %>
+                      <td width=10%><%= select 'run_week', '', @run_weeks, { :include_blank => false, :selected => params[:run_week][i]} %></td>
+                      <td width=15%><%= select 'run_yobi', '', @run_yobis, { :include_blank => false, :selected => params[:run_yobi][i]} %></td>
+                      <td width=25%><%= select 'item_kbn', '', @item_kbns, { :include_blank => false, :selected => params[:item_kbn][i]} %></td>
+                      <% if not @unit_kbns.blank? %>
+                        <td width=10%><%= select 'unit_kbn', '', @unit_kbns, { :include_blank => true, :selected => params[:unit_kbn][i]} %></td>
+                      <% end %>
+                      <% if current_user.itaku_code.blank? %>
+                        <td width=30%><%= select 'itaku_code', '', @itaku_codes, { :include_blank => true, :selected => params[:itaku_code][i]} %></td>
+                      <% else %>
+                        <%= hidden_field :itaku_code, '', :value => params[:itaku_code][i] %>
+                      <% end %>
+                      <td width=10%><input type=button value="削除" onClick="froute_rundate_dlt(<%= @cnt_no + 1 %>)"; class='btn btn-mini btn-danger'></td>
+                    <% else %>
+                      <td width=10%>※他委託会社分※<%= hidden_field :run_week, '', :value => params[:run_week][i] %></td>
+                      <td width=15%><%= hidden_field :run_yobi, '', :value => params[:run_yobi][i] %></td>
+                      <td width=25%><%= hidden_field :item_kbn, '', :value => params[:item_kbn][i] %></td>
+                      <% if not @unit_kbns.blank? %>
+                        <td width=10%><%= hidden_field :unit_kbn, '', :value => params[:unit_kbn][i] %></td>
+                      <% end %>
+                      <%= hidden_field :itaku_code, '', :value => params[:itaku_code][i] %>
+                      <td width=10%></td>
+                    <% end %>
+                  </tr>
+                </table>
+              </div>
+              <% @cnt_no = @cnt_no + 1 %>
+            <% end %>
+          <% end %>
+        <% end %>
+      <% else %>
+        <% @m_route_rundates.each do |m_route_rundate| %>
+          <div id=tree_no_<%= m_route_rundate.tree_no %>>
+            <table>
+              <tr>
+                <% if current_user.itaku_code.blank? || current_user.itaku_code.to_s == m_route_rundate.itaku_code.to_s %>
+                  <td width=10%><%= select 'run_week', '', @run_weeks, { :include_blank => false, :selected => m_route_rundate.run_week} %></td>
+                  <td width=15%><%= select 'run_yobi', '', @run_yobis, { :include_blank => false, :selected => m_route_rundate.run_yobi} %></td>
+                  <td width=25%><%= select 'item_kbn', '', @item_kbns, { :include_blank => false, :selected => m_route_rundate.item_kbn} %></td>
+                  <% if not @unit_kbns.blank? %>
+                    <td width=10%><%= select 'unit_kbn', '', @unit_kbns, { :include_blank => true, :selected => m_route_rundate.unit_kbn} %></td>
+                  <% end %>
+                  <% if current_user.itaku_code.blank? %>
+                    <td width=30%><%= select 'itaku_code', '', @itaku_codes, { :include_blank => true, :selected => m_route_rundate.itaku_code} %></td>
+                  <% else %>
+                    <%= hidden_field :itaku_code, '', :value => m_route_rundate.itaku_code %>
+                  <% end %>
+                  <td width=10%><input type=button value="削除" onClick="froute_rundate_dlt(<%= m_route_rundate.tree_no %>)"; class='btn btn-mini btn-danger'></td>
+                <% else %>
+                  <td width=10%>※他委託会社分※<%= hidden_field :run_week, '', :value => m_route_rundate.run_week %></td>
+                  <td width=15%><%= hidden_field :run_yobi, '', :value => m_route_rundate.run_yobi %></td>
+                  <td width=25%><%= hidden_field :item_kbn, '', :value => m_route_rundate.item_kbn %></td>
+                  <% if not @unit_kbns.blank? %>
+                    <td width=10%><%= hidden_field :unit_kbn, '', :value => m_route_rundate.unit_kbn %></td>
+                  <% end %>
+                  <%= hidden_field :itaku_code, '', :value => m_route_rundate.itaku_code %>
+                  <td width=10%></td>
+                <% end %>
+              </tr>
+            </table>
+          </div>
+          <% @cnt_no = @cnt_no + 1 %>
+        <% end %>
+      <% end %>
+      <span id=route_tag_sub></span>
+      <input type=hidden id=m_route_rundate_cnt_no name=cnt_no value="<%= @cnt_no + 1 %>">
+      <input type=hidden id=routecode name=routecode value="<%= @routecode %>">
+      <input type=hidden id=edit_type name=edit_type value="<%= @edit_type %>">
+      <%= hidden_field_tag :hold_params, 1 %>
+      <%= hidden_field_tag :search_page, params[:search_page].to_s %>
+      <%= hidden_field_tag :search_routecode, params[:search_routecode].to_s %>
+      <%= hidden_field_tag :search_routename, params[:search_routename].to_s %>
+      <%= hidden_field_tag :search_itaku, params[:search_itaku].to_s %>
+      <%= hidden_field_tag :search_delete, params[:search_delete].to_s %>
+    </div>
+<% end %>
+<br>
+新規レコード
+<form action="m_routes" id="result_form" name="result_form" data-remote="true" method="post">
+  <div id=tree_no_add>
+    <table>
+      <tr>
+        <td width=10%><%= select 'run_week_new', '', @run_weeks, { :include_blank => false} %></td>
+        <td width=15%><%= select 'run_yobi_new', '', @run_yobis, { :include_blank => true} %></td>
+        <td width=25%><%= select 'item_kbn_new', '', @item_kbns, { :include_blank => true} %></td>
+        <% if not @unit_kbns.blank? %>
+          <td width=10%><%= select 'unit_kbn_new', '', @unit_kbns, { :include_blank => true} %></td>
+        <% else %>
+          <%= hidden_field :unit_kbn_new, '', :value => nil %>
+        <% end %>
+        <% if current_user.itaku_code.blank? %>
+          <td width=30%><%= select 'itaku_code_new', '', @itaku_codes, { :include_blank => true} %></td>
+        <% else %>
+          <%= hidden_field :itaku_code_new, '', :value => current_user.itaku_code.to_s %>
+        <% end %>
+        <td width=10%><input type=button value="行追加" onclick=froute_rundate_add("<%= ERB::Util.url_encode(@run_weeks) %>","<%= ERB::Util.url_encode(@run_yobis) %>","<%= ERB::Util.url_encode(@item_kbns) %>","<%= ERB::Util.url_encode(@unit_kbns) %>","<%= ERB::Util.url_encode(@itaku_codes) %>","<%= current_user.itaku_code.to_s %>"); class='btn btn-mini'></td>
+      </tr>
+    </table>
+  </div>
+</form>
+<br>
+<div class="actions">
+  <% if current_user.authority!=9 %>
+    <input type=button value="更新" onClick="froute_upd();" class='btn btn-primary'>&nbsp;&nbsp;
+  <% end %>
+  <%= link_to '戻る', m_routes_path(:hold_params=>1,:page=>params[:search_page].to_s,:search_routecode=>params[:search_routecode].to_s,:search_routename=>params[:search_routename].to_s,:search_itaku=>params[:search_itaku].to_s,:search_delete=>params[:search_delete].to_s), :class => 'btn', :style=>'text-decoration:none;' %>
+</div>
+<br>

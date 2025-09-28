@@ -1,0 +1,3 @@
+class MUser < ActiveRecord::Base
+  #attr_accessible :user_id, :user_name, :password, :authority, :delete_flg
+end

@@ -1,0 +1,100 @@
+    var cust_kbn;
+    var cust_code;
+    var cust_name;
+    var addr_1;
+    var admin_name;
+    var admin_tel;
+    var admin_email;
+    var type_value;
+    var marker_color;
+    var id;
+    var latitude;
+    var longitude;
+    var seq_id = 0;
+    var contentString;
+    var icon;
+    var myLatlng;
+    var infowindow = new Array();
+    var cust_code_array = new Array();
+    var cust_name_array = new Array();
+    custom_count = eval(<%= @m_customs.length %>);
+    
+    //マーカークリア（念の為）
+    for(var i = 0; i < marker.length; i++){
+      marker[i].setMap(null);
+    }
+<%
+  if not @m_customs.nil?
+    @m_customs.each do |custom|
+%>
+      cust_kbn = "<%= custom.cust_kbn %>";
+      cust_code = "<%= custom.cust_code %>";
+      cust_name = "<%= custom.cust_name %>";
+      addr_1 = "<%= custom.addr_1 %>";
+      admin_name = "<%= custom.admin_name %>";
+      admin_tel = "<%= custom.admin_tel %>";
+      admin_email = "<%= custom.admin_email %>";
+      type_value = "<%= custom.type_value %>";
+      marker_color = "<%= custom.marker_color %>";
+      cust_code_array[seq_id] = "<%= custom.cust_code %>";
+      cust_name_array[seq_id] = "<%= custom.cust_name %>";
+      id = "<%= custom.id %>";
+      latitude = "<%= custom.latitude %>";
+      longitude = "<%= custom.longitude %>";
+      
+      myLatlng = new google.maps.LatLng(latitude,longitude);
+      var elementid = "delete_form"+id;
+      contentString = "<div style='width:450px; height:150px;'><h3>" + cust_code + ":" + cust_name + "</h3>管理者名：" + admin_name + "<br>電話番号：" + admin_tel;
+      contentString = contentString + "<br><br><input type=button value='メモ' onclick=fcustom_memo_common('" + cust_code + "','<%= root_url(only_path: false) %>'); class='btn'>";
+      contentString = contentString + "&nbsp;&nbsp;&nbsp;&nbsp;<input type=button value='収集履歴' onclick=fcustom_carrun_common('" + cust_kbn + "','" + cust_code + "','<%= root_url(only_path: false) %>'); class='btn'>";
+      contentString = contentString + "&nbsp;&nbsp;&nbsp;&nbsp;<input type=button value='詳細' onclick=fcustom_detail_common('" + id + "','<%= root_url(only_path: false) %>',''); class='btn'>";
+      contentString = contentString + "&nbsp;&nbsp;&nbsp;&nbsp;<input type=button value='地図出力' onclick=fmap_output_cust('" + cust_code + "'); class='btn'>";
+      if(marker_color){
+        icon = "images/" + marker_color;
+      }else if(type_value){
+        icon = "images/" + type_value;
+      }else{
+        icon = "images/marker_icon_normal.png";
+      }
+
+      infowindow[seq_id] = new google.maps.InfoWindow({
+        content: contentString,
+        disableAutoPan: true
+      });
+      marker[seq_id] = new google.maps.Marker({
+        position: myLatlng,
+        icon: icon,
+        map: map,
+        title: ""+seq_id
+      });
+      google.maps.event.addListener(marker[seq_id], 'click', function() {
+        //情報ウィンドウ閉じる
+        for(var i = 0; i < seq_id; i++){
+          infowindow[i].close();
+        }
+        infowindow[this.getTitle()].open(map,marker[this.getTitle()]);
+      });
+      google.maps.event.addListener(marker[seq_id], 'rightclick', function() {
+        if (confirm("｢"+cust_name_array[this.getTitle()]+"｣の地図を出力しますが、よろしいですか？")){
+          fmap_output_cust(cust_code_array[this.getTitle()]);
+        }
+      });
+      seq_id += 1;
+<%
+    end
+  end
+%>
+  //中央の位置にマーカー表示
+  myLatlng = new google.maps.LatLng(map.getBounds().getCenter().lat(),map.getBounds().getCenter().lng())
+  icon = {
+    url: "<%= image_path("marker_pin.png") %>",
+    origin: new google.maps.Point(0, 0),
+    anchor: new google.maps.Point(5, 40)
+  };
+  marker[seq_id] = new google.maps.Marker({
+    position: myLatlng,
+    icon: icon,
+    map: map,
+    title: ""+seq_id
+  });
+  $('#layer').hide();

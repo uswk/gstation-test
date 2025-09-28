@@ -1,0 +1,199 @@
+<h1>ステーション一覧画面</h1>
+
+<div id="cover">
+<table>
+  <thead>
+  <%= form_tag("m_customs", method: "get") do %>
+    <tr>
+      <th>ステーション名</th>
+      <td><%= text_field 'search', 'cust_name', :size => 50, :value => @custname.blank? ? "" : @custname %></td>
+      <th>ｽﾃｰｼｮﾝｺｰﾄﾞ</th>
+      <td><%= text_field 'search', 'cust_code', :size => 20, :value => @custcode.blank? ? "" : @custcode %></td>
+    </tr>
+    <tr>
+      <th>住所</th>
+      <td><%= text_field 'search', 'cust_addr', :size => 50, :value => @custaddr.blank? ? "" : @custaddr %></td>
+      <th>管理者名</th>
+      <td><%= text_field 'search', 'cust_admin', :size => 30, :value => @custadmin.blank? ? "" : @custadmin %></td>
+    </tr>
+    <tr>
+      <th>収集区</th>
+      <td><%= select 'search', 'route_code', @route_codes, { :include_blank => true, :selected => @routecode.blank? ? "" : @routecode } %></td>
+      <th>1ページの表示数</th>
+      <td><%= select 'search', 'cust_page', {G_CUSTOM_PAGE_PER => G_CUSTOM_PAGE_PER, 20 => 20, 50 => 50, 100 => 100, 500 => 500, 1000 => 1000, 3000 => 3000, 5000 => 5000 }, :selected => @custpage.blank? ? G_CUSTOM_PAGE_PER : @custpage %></td>
+    <tr>
+    <tr>
+      <th>削除のみ ： <%= check_box 'search', 'delete', {:checked => @blndelete} %></th>
+      <td align=center colspan=3><%= submit_tag "検索", :class => 'btn btn-secondary' %></td>
+    <tr>
+  <% end %>
+  </thead>
+</table>
+<br>
+<% if current_user.authority!=9 %>
+  <%= link_to '新規追加・編集', m_custom_add_path(:search_page=>params[:page], :search_custcode=>@custcode, :search_custname=>@custname, :search_custaddr=>@custaddr, :search_custadmin=>@custadmin, :search_routecode=>@routecode, :search_custpage=>@custpage, :search_delete=>@deleteflg), :style=>"color:white; text-decoration:none;", :class => 'btn btn-primary' %>
+<% end %>
+<p style="float:right; margin-right:10px"><%= @iCount %>件</p>
+<br><br>
+<thead>
+<%= paginate(@m_customs) %>
+<table>
+  <thead>
+    <tr>
+      <th>ｽﾃｰｼｮﾝｺｰﾄﾞ</th>
+      <th>ステーション名</th>
+      <th>住所</th>
+      <th>管理者名</th>
+      <th>&nbsp;</th>
+      <% if current_user.authority!=9 %>
+        <th>&nbsp;</th>
+        <th>&nbsp;</th>
+        <th>&nbsp;</th>
+      <% end %>
+  </thead>
+  <tbody>
+    <% @m_customs.each do |m_custom| %>
+      <div class="link-s">
+      <tr style="background-color:<%= m_custom.bgcolor %>;" id=tr_<%= m_custom.cust_code %> onClick="mClickTR(this, '<%= m_custom.bgcolor %>')" onmouseover="mouseOverTR(this, '<%= m_custom.bgcolor %>');" onmouseout="mouseOutTR(this, '<%= m_custom.bgcolor %>');">
+        <td><%= m_custom.cust_code %></td>
+        <td><%= m_custom.cust_name %></td>
+        <td><%= (m_custom.addr_1.to_s + ' ' + m_custom.addr_2.to_s).strip %></td>
+        <td><%= m_custom.admin_name %></td>
+        <%= hidden_field 'bgcolor', m_custom.cust_code, :value=>m_custom.bgcolor %>
+        <td><%= link_to '詳細', m_custom_path(m_custom, :search_page=>params[:page], :search_custcode=>@custcode, :search_custname=>@custname, :search_custaddr=>@custaddr, :search_custadmin=>@custadmin, :search_routecode=>@routecode, :search_custpage=>@custpage, :search_delete=>@deleteflg), :class => 'btn btn-mini' %></td>
+        <% if current_user.authority!=9 %>
+          <td><%= link_to '編集', edit_m_custom_path(m_custom, :search_page=>params[:page], :search_custcode=>@custcode, :search_custname=>@custname, :search_custaddr=>@custaddr, :search_custadmin=>@custadmin, :search_routecode=>@routecode, :search_custpage=>@custpage, :search_delete=>@deleteflg), :class => 'btn btn-mini' %></td>
+          <% if @blndelete == false %>
+            <% @delete_txt = "削除" %>
+          <% else %>
+            <% @delete_txt = "復活" %>
+          <% end %>
+          <td><%= link_to @delete_txt, m_custom_path(m_custom, :hold_params=>1, :search_page=>params[:page], :search_custcode=>@custcode, :search_custname=>@custname, :search_custaddr=>@custaddr, :search_custadmin=>@custadmin, :search_routecode=>@routecode, :search_custpage=>@custpage, :search_delete=>@deleteflg), method: :delete, data: { confirm: @delete_txt.to_s + 'しますがよろしいですか?' }, :style=>"color:white;", :class => 'btn btn-mini btn-danger' %></td>
+          <td><%= link_to '変更申請', new_t_change_shinsei_path(:id=>m_custom.id, :search_page=>params[:page], :search_custcode=>@custcode, :search_custname=>@custname, :search_custaddr=>@custaddr, :search_custadmin=>@custadmin, :search_routecode=>@routecode, :search_custpage=>@custpage, :search_delete=>@deleteflg), :class => 'btn btn-mini' %></td>
+        <% end %>
+      </tr>
+      </div>
+    <% end %>
+  </tbody>
+</table>
+<% if not @map_zenrin_cid.blank? %>
+  <br>
+  <input type=button value="ゼンリン住宅地図" class='btn' style="position:relative; top:0px; left:-10px; float: right;" onclick=fzenrin_common_map_display("<%= root_url(only_path: false) %>");>
+<% end %>
+<br><br>
+<div class="map_container">
+  <div id="map_canvas" style="width:100%; height:500px"></div>
+</div>
+<% @url_path = "?search_page="+params[:page].to_s+"&search_custcode="+ERB::Util.url_encode(@custcode.to_s)+"&search_custname="+ERB::Util.url_encode(@custname.to_s)+"&search_custaddr="+ERB::Util.url_encode(@custaddr.to_s)+"&search_custadmin="+ERB::Util.url_encode(@custadmin.to_s)+"&search_routecode="+ERB::Util.url_encode(@routecode.to_s)+"&search_custpage="+@custpage.to_s+"&search_delete="+@deleteflg.to_s %>
+<%= content_for :scripts do %>
+  <script src="//maps.googleapis.com/maps/api/js?v=3.23&language=ja&key=<%= @map_key %>"></script>
+  <script src="//google-maps-utility-library-v3.googlecode.com/svn/tags/markerclustererplus/2.0.14/src/markerclusterer_packed.js" type="text/javascript"></script>
+  <script type="text/javascript" charset="utf-8">
+    var gActiveobj;
+    var gActivecolor;
+    var makerIndex;
+    var myLatlng;
+    var contentString;
+    var icon;
+    var tree_id=0;
+    var markers = new Array();
+    var infowindow = new Array();
+
+    myLatlng = new google.maps.LatLng("<%= @def_lat %>","<%= @def_lng %>");
+    var mapOptions = {
+      auto_zoom: false,
+      zoom: 14,
+      auto_adjust: false,
+      center: myLatlng,
+      gestureHandling: "greedy",
+      mapTypeId: google.maps.MapTypeId.ROADMAP
+    }
+    var map = new google.maps.Map(document.getElementById("map_canvas"), mapOptions);
+
+    google.maps.event.addDomListener(window, 'load', function()
+    {
+      <% if not @m_customs.blank? %>
+        <% @m_customs.each do |m_custom| %>
+          var id = "<%= m_custom.id %>";
+          var cust_kbn = "<%= m_custom.cust_kbn %>";
+          var cust_code = "<%= m_custom.cust_code %>";
+          var cust_name = "<%= m_custom.cust_name %>";
+          <% if m_custom.bgcolor.to_s=="lightgrey" %>
+            icon = "images/marker_icon_del.png";
+          <% elsif not m_custom.marker_color.blank? %>
+            icon = "images/<%= m_custom.marker_color.to_s %>";
+          <% elsif not m_custom.type_value.blank? %>
+            icon = "images/<%= m_custom.type_value.to_s %>";
+          <% else %>
+            icon = "images/marker_icon_normal.png";
+          <% end %>
+
+          contentString = "<div style='width:450px; height:160px;'><h3>" + cust_code + ":" + cust_name + "</h3><%= (m_custom.addr_1.to_s + ' ' + m_custom.addr_2.to_s).strip %><br><br>管理者名：<%= m_custom.admin_name.to_s %><br>電話番号：<%= m_custom.admin_tel.to_s %><br><br>";
+          contentString = contentString + "<input type=button value='メモ' onclick=fcustom_memo_common('" + cust_code + "','<%= root_url(only_path: false) %>'); class='btn btn-mini'>";
+          contentString = contentString + "&nbsp;&nbsp;<input type=button value='収集履歴' onclick=fcustom_carrun_common('" + cust_kbn + "','" + cust_code + "','<%= root_url(only_path: false) %>'); class='btn btn-mini'>";
+          contentString = contentString + "&nbsp;&nbsp;<input type=button value='詳細' onclick=fcustom_detail_common('" + id + "','<%= root_url(only_path: false) %>',''); class='btn btn-mini'>";
+          <% if m_custom.window_id.to_s=="-5" %>
+            contentString = "</div>";
+          <% else %>
+            contentString += "&nbsp;&nbsp;<input type=button value='編集' onclick=fcustom_detail_common('" + id + "','<%= root_url(only_path: false) %>','/edit'); class='btn btn-mini'>";
+            <% if m_custom.delete_flg.to_s=="0" %>
+              contentString += "&nbsp;&nbsp;<a href='m_customs/<%= m_custom.id.to_s %><%= @url_path.to_s %>&hold_params=1' data-confirm='削除しますがよろしいですか?' data-method='delete' rel='nofollow' style='color:white; text-decoration:none;' class='btn btn-mini btn-danger'>削除</a></div>";
+            <% else %>
+              contentString += "&nbsp;&nbsp;<a href='m_customs/<%= m_custom.id.to_s %><%= @url_path.to_s %>&hold_params=1' data-confirm='復活しますがよろしいですか?' data-method='delete' rel='nofollow' style='color:white; text-decoration:none;' class='btn btn-mini btn-danger'>復活</a></div>"
+            <% end %>
+          <% end %>
+
+          myLatlng = new google.maps.LatLng("<%= m_custom.latitude.to_s %>","<%= m_custom.longitude.to_s %>");
+          
+          infowindow[tree_id] = new google.maps.InfoWindow({
+            content: contentString,
+            disableAutoPan: true
+          });
+          markers[tree_id] = new google.maps.Marker({
+            position: myLatlng,
+            icon: icon,
+            title: ""+tree_id,
+            map: map
+          });
+
+          google.maps.event.addListener(markers[tree_id], 'click', function() {
+            //情報ウィンドウ閉じる
+            for(var i = 0; i < tree_id; i++){
+              infowindow[i].close();
+            }
+            infowindow[eval(this.getTitle())].open(map,markers[eval(this.getTitle())]);
+          });
+          
+          tree_id = tree_id + 1;
+        <% end %>
+      <% end %>
+    });
+    function mouseOverTR(obj, bgcolor) {
+      obj.style.backgroundColor = "#FFFF55";
+    }
+    function mouseOutTR(obj, bgcolor) {
+      if (obj!=gActiveobj){
+        obj.style.backgroundColor = bgcolor;
+      }
+    }
+    function mClickTR(obj, bgcolor) {
+console.log('mClickTR')
+      if (gActiveobj){
+        gActiveobj.style.backgroundColor = gActivecolor;
+      }
+      gActiveobj = obj;
+      gActivecolor = bgcolor;
+      obj.style.backgroundColor = "#FFFF55";
+      var rowindex = obj.rowIndex-1
+      var marker = markers[rowindex];
+      var pos = new google.maps.LatLng(marker.position.lat(),marker.position.lng());
+      map.panTo(pos);
+      for (var i = 0; i < markers.length; ++i) { 
+        infowindow[i].close();
+      }
+      infowindow[rowindex].open(map,markers[rowindex]);
+    }
+  </script>
+<% end %>
+</div>
+</div>

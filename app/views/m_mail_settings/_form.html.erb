@@ -1,0 +1,128 @@
+
+<%= form_for(@m_mail_setting) do |f| %>
+  <% if @m_mail_setting.errors.any? %>
+    <div id="error_explanation">
+      <h2><%= pluralize(@m_mail_setting.errors.count, "error") %> prohibited this m_mail_setting from being saved:</h2>
+
+      <ul>
+      <% @m_mail_setting.errors.full_messages.each do |msg| %>
+        <li><%= msg %></li>
+      <% end %>
+      </ul>
+    </div>
+  <% end %>
+
+  <table>
+    <thead>
+      <tr>
+        <th>設定</th>
+        <td><%= f.radio_button :setting_kbn, '2', {:checked => true, :onchange => ('fmail_setting_radio();')} %>：独自設定　　<%= f.radio_button :setting_kbn, '1', {:onchange => ('fmail_setting_radio();')} %>：標準設定</td>
+      </tr>
+      <tr>
+        <th>電子メールアドレス</th>
+        <td><input type=text id="m_mail_setting_user_name" name="m_mail_setting[user_name]" maxlength=50 value="<%= @m_mail_setting.user_name %>" "<%= @readonly_type %>" /></td>
+      </tr>
+      <tr>
+        <th>パスワード</th>
+        <td><input id="m_mail_setting_mail_pass" name="m_mail_setting[mail_pass]" size="30" type="password" value="<%= @m_mail_setting.mail_pass %>" "<%= @readonly_type %>" /></td>
+      </tr>
+      <tr>
+        <th>送信メール（SMTP）</th>
+        <td><input type=text id="m_mail_setting_address" name="m_mail_setting[address]" maxlength=50 value="<%= @m_mail_setting.address %>" "<%= @readonly_type %>" /></td>
+      </tr>
+      <tr>
+        <th>ドメイン</th>
+        <td><input type=text id="m_mail_setting_domain" name="m_mail_setting[domain]" maxlength=50 value="<%= @m_mail_setting.domain %>" "<%= @readonly_type %>" /></td>
+      </tr>
+      <tr>
+        <th>ポート番号（SMTP）</th>
+        <td><input type=text id="m_mail_setting_port" name="m_mail_setting[port]" maxlength=6 value="<%= @m_mail_setting.port %>" "<%= @readonly_type %>" /></td>
+      </tr>
+      <tr>
+        <th>認証</th>
+        <td>
+          <select id="m_mail_setting_authentication" name="m_mail_setting[authentication]">
+            <% @m_combo_authentications.each do |authentication| %>
+              <% if authentication.class_code.to_s==@m_mail_setting.authentication.to_s %>
+                <option value="<%= authentication.class_code %>" selected><%= authentication.class_name %></option>
+              <% else %>
+                <option value="<%= authentication.class_code %>"><%= authentication.class_name %></option>
+              <% end %>
+            <% end %>
+          </select>
+        <tr>
+      </tr>
+      <tr>
+        <th>表示名</th>
+        <td><input type=text id="m_mail_setting_display_name" name="m_mail_setting[display_name]" maxlength=50 value="<%= @m_mail_setting.display_name %>"/></td>
+      </tr>
+      <tr>
+        <th>返信先アドレス（Reply-To）</th>
+        <td><input type=text id="m_mail_setting_reply_to_mail" name="m_mail_setting[reply_to_mail]" maxlength=50 value="<%= @m_mail_setting.reply_to_mail %>"/></td>
+      </tr>
+    </thead>
+  </table>
+  <br>
+  <div class="actions">
+    <%= f.submit :"更新", :onclick => ('return fmail_settings_submit();'), :class => 'btn btn-primary' %>
+    &nbsp;&nbsp;<%= link_to '戻る', m_mail_settings_path, :class => 'btn btn-light', :style=>'text-decoration:none;' %>
+  </div>
+<% end %>
+<% content_for :scripts do %>
+  <script type="text/javascript">
+    function fmail_settings_submit(){
+      if (document.getElementById("m_mail_setting_user_name").value.length<=0) {
+        alert("電子メールアドレスは入力必須です。");
+        return false;
+      }
+      if (document.getElementById("m_mail_setting_mail_pass").value.length<=0) {
+        alert("パスワードは入力必須です。");
+        return false;
+      }
+      if (document.getElementById("m_mail_setting_address").value.length<=0) {
+        alert("送信メール（SMTP）は入力必須です。");
+        return false;
+      }
+      if (document.getElementById("m_mail_setting_domain").value.length<=0) {
+        alert("ドメインは入力必須です。");
+        return false;
+      }
+      if (document.getElementById("m_mail_setting_port").value.length<=0) {
+        alert("ポート番号（SMTP）は入力必須です。");
+        return false;
+      }
+      if(window.confirm('更新しますがよろしいですか？')){
+        return true;
+      }else{
+        return false;
+      }
+    }
+    function fmail_setting_radio(){
+      if(document.getElementById("m_mail_setting_setting_kbn_1").checked){
+        document.getElementById("m_mail_setting_user_name").value = "<%= @user_name %>";
+        document.getElementById("m_mail_setting_mail_pass").value = "<%= @mail_pass %>";
+        document.getElementById("m_mail_setting_address").value = "<%= @address %>";
+        document.getElementById("m_mail_setting_domain").value = "<%= @domain %>";
+        document.getElementById("m_mail_setting_port").value = "<%= @port %>";
+        document.getElementById("m_mail_setting_authentication").value = eval("<%= @authentication %>");
+        document.getElementById("m_mail_setting_user_name").readOnly = true;
+        document.getElementById("m_mail_setting_mail_pass").readOnly = true;
+        document.getElementById("m_mail_setting_address").readOnly = true;
+        document.getElementById("m_mail_setting_domain").readOnly = true;
+        document.getElementById("m_mail_setting_port").readOnly = true;
+      }else{
+        document.getElementById("m_mail_setting_user_name").value = "";
+        document.getElementById("m_mail_setting_mail_pass").value = "";
+        document.getElementById("m_mail_setting_address").value = "";
+        document.getElementById("m_mail_setting_domain").value = "";
+        document.getElementById("m_mail_setting_port").value = "";
+        document.getElementById("m_mail_setting_authentication").value = 0;
+        document.getElementById("m_mail_setting_user_name").readOnly = false;
+        document.getElementById("m_mail_setting_mail_pass").readOnly = false;
+        document.getElementById("m_mail_setting_address").readOnly = false;
+        document.getElementById("m_mail_setting_domain").readOnly = false;
+        document.getElementById("m_mail_setting_port").readOnly = false;
+      }
+    }
+  </script>
+<% end %>

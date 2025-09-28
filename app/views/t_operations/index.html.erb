@@ -1,0 +1,160 @@
+<%= form_tag("t_operations", :method=>"get", :id=>"search_form") do %>
+  <%= hidden_field_tag :out_timing, params[:out_timing].to_s %>
+  <%= hidden_field_tag :car_code, params[:car_code].to_s %>
+<% end %>
+  <% if current_user.authority!=9 and !@t_carrun.in_timing.blank? %>
+    <input type=button value='追加' onclick='return JOperationDisplay(0);' class='btn btn-primary'>
+    <br><br>
+  <% end %>
+  <table>
+    <thead>
+      <tr>
+        <th>作業時刻</th>
+        <th>運行種類</th>
+        <th>作業種類</th>
+        <% if current_user.authority!=9 and !@t_carrun.in_timing.blank? %>
+          <th>　</th>
+        <% end %>
+      </tr>
+    </thead>
+    <tbody>
+      <% @t_carrun_lists.each do |t_carrun_list| %>
+        <tr>
+          <td><%= t_carrun_list.work_timing.try(:strftime, "%H:%M:%S") %><%= t_carrun_list.work_timing==t_carrun_list.end_timing || t_carrun_list.end_timing.blank? ? "" : " ～ " + t_carrun_list.end_timing.try(:strftime, "%H:%M:%S") %></td>
+          <td><%= t_carrun_list.work_kbn_name %></td>
+          <td><%= t_carrun_list.work_kind_name %></td>
+          <%= hidden_field :work_timing, t_carrun_list.id.to_s, :value=>t_carrun_list.work_timing.try(:strftime, "%H:%M:%S") %>
+          <%= hidden_field :end_timing, t_carrun_list.id.to_s, :value=>t_carrun_list.end_timing.try(:strftime, "%H:%M:%S") %>
+          <%= hidden_field :work_kbn, t_carrun_list.id.to_s, :value=>t_carrun_list.work_kbn.to_s %>
+          <%= hidden_field :work_kind, t_carrun_list.id.to_s, :value=>t_carrun_list.work_kind.to_s %>
+          <% if current_user.authority!=9 and !@t_carrun.in_timing.blank? %>
+            <td>
+              <% if current_user.authority.to_s=="1" %>
+                <input type=button value='編集' onclick='return JOperationDisplay("<%= t_carrun_list.id %>");' class='btn btn-mini'>
+              <% end %>
+            </td>
+          <% end %>
+        </tr>
+      <% end %>
+    </tbody>
+  </table>
+<br>
+<input type="button" id="modalClose" value="閉じる" onclick="modal_close()" class='btn'>
+<div id="modal_operation" style="display:none;">
+  <form action="t_operations" data-remote="true" id="input_form" name="input_form" method="post">
+    <br>
+    <table>
+      <thead>
+        <tr>
+          <th>作業時刻</th>
+          <td>
+            <%= text_field :update, :work_timing, :size => 8, :maxlength => 8 %> ～ <%= text_field :update, :end_timing, :size => 8, :maxlength => 8 %>（hh:mm:ss形式）
+          </td>
+        </tr>
+        <tr>
+          <th>作業種類</th>
+          <td>
+            <%= select :update, :work_kind, @work_kinds, { :include_blank => false } %>
+          </td>
+        </tr>
+      </thead>
+    </table>
+    <br>
+    <%= hidden_field 'update', 'flg' %>
+    <%= hidden_field 'update', 'id' %>
+    <%= hidden_field_tag :update_out_timing, params[:out_timing].to_s %>
+    <%= hidden_field_tag :update_car_code, params[:car_code].to_s %>
+    <div class="form-actions">
+      &nbsp;&nbsp;<%= button_tag '閉じる', :onclick => 'return JOperationClose();', :class => 'btn' %>
+      &nbsp;&nbsp;&nbsp;<%= button_tag '更新', :onclick => 'return JOperationUpdate();', :class => 'btn btn-primary', :id => 'update_btn' %>
+      &nbsp;&nbsp;&nbsp;<%= button_tag '削除', :onclick => 'return JOperationDelete();', :class => 'btn btn-danger', :id => 'delete_btn' %>
+    </div>
+  </form>
+</div>
+
+<%= content_for :scripts do %>
+  <script type="text/javascript" charset="utf-8">
+
+    //運行データ登録画面表示
+    function JOperationDisplay(id){
+      if(id==0){
+        operation_title = "運行データ登録　";
+        document.getElementById("update_work_timing").value = "";
+        document.getElementById("update_end_timing").value = "";
+        document.getElementById("update_work_kind").value = "";
+        document.getElementById("update_flg").value = 1;
+        document.getElementById("update_id").value = 0;
+        document.getElementById("delete_btn").style.display = "none";
+      }else{
+        operation_title = "運行データ更新　";
+        document.getElementById("update_work_timing").value = document.getElementById("work_timing_" + id).value;
+        document.getElementById("update_end_timing").value = document.getElementById("end_timing_" + id).value;
+        document.getElementById("update_work_kind").value = document.getElementById("work_kbn_" + id).value + '_' + document.getElementById("work_kind_" + id).value;
+        document.getElementById("update_flg").value = 2;
+        document.getElementById("update_id").value = id;
+        document.getElementById("delete_btn").style.display = "";
+        
+        <% @work_kinds = MCombo.where("class_1=23 and delete_flg=0").order("class_code asc").map{|i| [i.class_name.to_s, i.class_code] } %>
+      }
+      $('#modal_operation').dialog({
+        title: operation_title,
+        modal: true,
+        show : "fade",
+        hide : "fade",
+        width: 600,
+        height: 350
+      });
+    }
+    //運行データ更新
+    function JOperationUpdate(){
+      if(document.getElementById("update_work_timing").value.length<=0){
+        alert("作業開始時刻が入っていません。");
+        return false;
+      }
+      if (document.getElementById("update_work_timing").value.length>0 && commonCkTime(document.getElementById("update_work_timing").value)==false) {
+        alert("作業開始時刻の形式が正しくありません。（hh:mm:ss）");
+        return false;
+      }
+      if(document.getElementById("update_end_timing").value.length<=0){
+        alert("作業終了時刻が入っていません。");
+        return false;
+      }
+      if (document.getElementById("update_end_timing").value.length>0 && commonCkTime(document.getElementById("update_end_timing").value)==false) {
+        alert("作業終了時刻の形式が正しくありません。（hh:mm:ss）");
+        return false;
+      }
+      if(document.getElementById("update_work_timing").value>document.getElementById("update_end_timing").value){
+        alert("作業時刻の大小関係が正しくありません。（hh:mm:ss）");
+        return false;
+      }
+      if (confirm("運行データ登録しますが、よろしいですか？")){
+        $("#input_form").submit();
+        return false;
+      }else{
+        return false;
+      }
+    }
+    
+    function JOperationDelete(){
+      if (confirm("運行データを削除しますが、よろしいですか？")){
+        document.getElementById("update_flg").value = 3;
+        $("#input_form").submit();
+        return false;
+      }else{
+        return false;
+      }
+    }
+    
+    //運行データ登録画面閉じる
+    function JOperationClose(){
+      $('#modal_operation').dialog("close");
+      return false;
+    }
+    
+    //モーダルを閉じる
+    function modal_close(){
+      window.parent.jQuery('#modal_operations').dialog('close');
+    }
+    
+  </script>
+<% end %>

@@ -1,0 +1,80 @@
+<%= form_for(@m_car) do |f| %>
+  <% if @m_car.errors.any? %>
+    <div id="error_explanation">
+      <h2><%= pluralize(@m_car.errors.count, "error") %> prohibited this m_car from being saved:</h2>
+
+      <ul>
+      <% @m_car.errors.full_messages.each do |msg| %>
+        <li><%= msg %></li>
+      <% end %>
+      </ul>
+    </div>
+  <% end %>
+  <table>
+    <thead>
+    <tr>
+      <th width=30%>車両コード</th>
+      <% if @action_form=='update' %>
+        <td width=70%><%= f.text_field :car_code, :readonly => true, :disabled => true, :maxlength=>10 %></td>
+      <% else %>
+        <td width=70%><%= f.text_field :car_code, :maxlength=>10 %></td>
+      <% end %>
+    </tr>
+    <tr>
+      <th>陸運局登録番号</th>
+      <td><%= f.text_field :car_reg_code, :maxlength=>20 %></td>
+    </tr>
+    <tr>
+      <th>部署</th>
+      <td><%= f.select :section_code, @section_codes, { :include_blank => true} %></td>
+    </tr>
+    <tr>
+      <th>車両メーカー名</th>
+      <td><%= f.text_field :car_maker, :maxlength=>50 %></td>
+    </tr>
+    <tr>
+      <th>車種</th>
+      <td><%= f.select :type_code, @type_codes, { :include_blank => true} %></td>
+    </tr>
+    <tr>
+      <th>委託会社</th>
+      <% if @action_form=='update' %>
+        <td><%= f.select :itaku_code, @itaku_codes, { :include_blank => true} %></td>
+      <% else %>
+        <td><%= f.select :itaku_code, @itaku_codes, { :include_blank => true, :selected => current_user.itaku_code.to_s} %></td>
+      <% end %>
+    </tr>
+    <%= hidden_field :m_car, :delete_flg, :value => @m_car.delete_flg.nil? ? 0 : @m_car.delete_flg %>
+    </thead>
+  </table>
+  <br>
+  <div class="actions">
+    <% if current_user.authority!=9 %>
+      <%= f.submit :"更新", :onclick => ('return fcars_submit();'), :class => 'btn btn-primary' %>&nbsp;&nbsp;
+    <% end %>
+    <%= link_to '戻る', m_cars_path, :class => 'btn', :style=>'text-decoration:none;' %>
+  </div>
+<% end %>
+<% content_for :scripts do %>
+  <script type="text/javascript">
+    function fcars_submit(){
+      if (document.getElementById("m_car_car_code").value.length<=0) {
+        alert("車両コードは入力必須です。");
+        return false;
+      }
+      if (document.getElementById("m_car_car_reg_code").value.length<=0) {
+        alert("陸運局登録番号は入力必須です。");
+        return false;
+      }
+      if (document.getElementById("m_car_car_code").value.match(/[^0-9a-zA-Z_]+/)){
+        alert("車両コードは半角英数字で入力してください。");
+        return false;
+      }
+      if(window.confirm('更新しますがよろしいですか？')){
+        return true;
+      }else{
+        return false;
+      }
+    }
+  </script>
+<% end %>

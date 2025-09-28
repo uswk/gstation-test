@@ -1,0 +1,5 @@
+class MRoute < ActiveRecord::Base
+  #attr_accessible :route_code, :route_name, :itaku_code, :area_color, :delete_flg, :use_item_flg
+  
+  validates :route_code,  :uniqueness => {:case_sensitive => false, :message =>"　収集区コードが重複しています。"}
+end

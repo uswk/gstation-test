@@ -1,0 +1,31 @@
+$light: #ddd;
+
+@import 'bootstrap/scss/bootstrap';
+@import 'bootstrap-icons/font/bootstrap-icons';
+
+@import 'scaffolds.css.scss';
+
+.alert:empty {
+	display: none;
+}
+
+h1 {
+  font-size: 1.6rem;
+}
+
+.ui-widget-header .ui-icon {
+  background-image: url(../images/ui-icons_222222_256x240.png);
+}
+.ui-datepicker-trigger{
+  cursor: pointer;
+  margin-left: 5px!important;
+  position:relative; top:7px!important;
+}
+
+.markerwithlabel-labels {
+  color: #000000;
+  text-shadow: 1px 1px 0 #ffffff, -1px -1px 0 #ffffff,
+  -1px 1px 0 #ffffff,  1px -1px 0 #ffffff,
+  1px 0 0 #ffffff, -1px  0 0 #ffffff,
+  0 1px 0 #ffffff,  0 -1px 0 #ffffff;
+}

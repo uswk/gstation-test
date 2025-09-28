@@ -1,0 +1,96 @@
+<h1>管理者情報Excel入出力画面</h1>
+<p id="notice"><%= alert %></p>
+<div id="cover">
+  <%= form_with(url: admin_excel_path, local: true, method: "post", id: "inputform", html: {name: "inputform"}, data: {turbo: false}) do %>
+    <table>
+      <thead>
+        <tr><th colspan=4>Excelダウンロード</th></tr>
+        <tr>
+          <th>管理者名</th>
+          <td><%= text_field 'search_name', 'query', :size => 50, :value => params[:search_name].nil? ? "" : params[:search_name][:query] %></td>
+          <th>管理者ｺｰﾄﾞ</th>
+          <td><%= text_field 'search', 'query', :size => 20, :value => params[:search].nil? ? "" : params[:search][:query]  %></td>
+        </tr>
+        <tr>
+          <th>住所</th>
+          <td><%= text_field 'search_addr', 'query', :size => 50, :value => params[:search_addr].nil? ? "" : params[:search_addr][:query] %></td>
+          <th>電話番号</th>
+          <td><%= text_field 'search_tel', 'query', :size => 30, :value => params[:search_tel].nil? ? "" : params[:search_tel][:query] %></td>
+        </tr>
+        <tr>
+          <th>種別</th>
+          <td>
+            <%= radio_button 'search_type', 'query', '', {:checked => true} %>指定しない
+            <% @admin_types.each do |admin_type| %>
+              <%= radio_button 'search_type', 'query', admin_type.class_code, {:checked => params[:search_type].nil? ? false : params[:search_type][:query].to_i==admin_type.class_code ? true : false} %><%= admin_type.class_name %>
+            <% end %>
+          </td>
+          <th>地区</th>
+          <td><%= select 'search_district', 'query', @districts, { :include_blank => true, :selected => params[:search_district].nil? ? "" : params[:search_district][:query]} %></td>
+        </tr>
+        <tr>
+          <td colspan=4 align=center><%= submit_tag "Excelデータ出力" , :onclick => "return fexcel_send()", :class => 'btn btn-primary' %></td>
+          <%= hidden_field_tag :excel_flg, 1 %>
+        </tr>
+      </thead>
+    </table>
+  <% end %>
+  <br><br>
+  <%= form_tag("admin_excel", method: "post", id: "uploadform", name: "uploadform", :multipart =>true) do %>
+    <table>
+      <thead>
+        <tr><th colspan=4>Excelアップロード</th></tr>
+        <tr>
+          <th>変更予定日</th>
+          <td><%= text_field 'kibou_date', 'query', :class => 'datepicker', :maxlength=>10 %></td>
+        </tr>
+        <tr>
+          <th>ファイル指定</th>
+          <td><%= file_field 'upload_file', 'query', :accept=>".xlsx" %></td>
+        </tr>
+        <tr>
+          <td colspan=2 align=center><%= submit_tag "Excelデータ取込" , :onclick => "return fexcel_upload()", :disable_with => "取込中...", :class => 'btn btn-primary' %></td>
+          <%= hidden_field_tag :excel_flg, 2 %>
+        </tr>
+      </thead>
+    </table>
+  <% end %>
+</div>
+<%= content_for :scripts do %>
+  <script type="text/javascript" charset="utf-8">
+    function fexcel_send(){
+      if(window.confirm("Excel出力しますが、よろしいですか？")){
+        return true;
+      }else{
+        return false;
+      }
+    }
+    function fexcel_upload(){
+      if(!document.getElementById("upload_file_query").value){
+        alert("Excelファイルを指定してください。");
+        return false;
+      }
+      if (document.getElementById("kibou_date_query").value.length<=0) {
+        alert("変更予定日は入力必須です。");
+        return false;
+      }else{
+        if (commonCkDate(document.getElementById("kibou_date_query").value)==false){
+          alert("変更予定日の日付形式が正しくありません。（yyyy/mm/dd）");
+          return false;
+        }
+      }
+      
+      var fnsplt = document.getElementById("upload_file_query").value.split(".");
+      var ext = fnsplt[fnsplt.length - 1];
+      if(ext!='xlsx'){
+        alert("拡張子がxlsxのみ取り込み可能です。");
+        return false;
+      }
+      if(window.confirm("Excelデータを取り込みますが、よろしいですか？")){
+        return true;
+      }else{
+        return false;
+      }
+    }
+  </script>
+<% end %>

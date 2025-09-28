@@ -1,0 +1,23 @@
+switch(<%= @ajax_flg %>){
+  case 1:  //登録成功
+    //メッセージダイアログ閉じる
+    $('#modal_operation').dialog("close");
+    alert("運行管理データの登録が完了しました。");
+    $("#search_form").submit();
+    break;
+  case 2:  //更新成功
+    //メッセージダイアログ閉じる
+    $('#modal_operation').dialog("close");
+    alert("運行管理データの更新が完了しました。");
+    $("#search_form").submit();
+    break;
+  case 3:  //削除成功
+    //メッセージダイアログ閉じる
+    $('#modal_operation').dialog("close");
+    alert("運行管理データの削除が完了しました。");
+    $("#search_form").submit();
+    break;
+  case 9:  //更新失敗
+    alert("運行管理データの更新に失敗しました。");
+    break;
+}

@@ -1,0 +1,207 @@
+<%= form_for(@t_change_shinsei) do |f| %>
+  <% if @t_change_shinsei.errors.any? %>
+    <div id="error_explanation">
+      <h2><%= pluralize(@t_change_shinsei.errors.count, "error") %> prohibited this t_change_shinsei from being saved:</h2>
+
+      <ul>
+      <% @t_change_shinsei.errors.full_messages.each do |msg| %>
+        <li><%= msg %></li>
+      <% end %>
+      </ul>
+    </div>
+  <% end %>
+  <table>
+    <thead>
+    <tr>
+      <th rowspan=2>ステーション</th>
+      <th>コード</th>
+      <td><%= @action_form=='update' ? @t_change_shinsei.cust_code : @m_custom.cust_code %></td>
+      <%= f.hidden_field :cust_code, :value=>@action_form=='update' ? @t_change_shinsei.cust_code : @m_custom.cust_code %>
+      <%= f.hidden_field :cust_kbn, :value=>@action_form=='update' ? @t_change_shinsei.cust_kbn : @m_custom.cust_kbn %>
+    </tr>
+    <tr>
+      <th>名称</th>
+      <td><%= f.text_field :cust_name, :value=>@action_form=='update' ? @t_change_shinsei.cust_name : @m_custom.cust_name, :size=>30, :maxlength=>50 %></td>
+    </tr>
+    <tr>
+      <th colspan=2>申請区分</th>
+      <td><%= f.select :shinsei_kbn, @shinsei_kbns, { :include_blank => true} %></td>
+    </tr>
+    <tr>
+      <th colspan=2>申請日</th>
+      <td><%= f.text_field :shinsei_date, :value=>@t_change_shinsei.shinsei_date.blank? ? Date.today.try(:strftime, "%Y/%m/%d") : @t_change_shinsei.shinsei_date.strftime("%Y/%m/%d"), :class => 'datepicker_sub', :maxlength=>10 %></td>
+    </tr>
+    <tr>
+      <th colspan=2>希望日</th>
+      <td><%= f.text_field :kibou_date, :value=>@t_change_shinsei.kibou_date.blank? ? "" : @t_change_shinsei.kibou_date.strftime("%Y/%m/%d"), :class => 'datepicker_sub', :maxlength=>10 %></td>
+    </tr>
+    <tr>
+      <th colspan=2>住所</th>
+      <td><%= f.text_field :addr_1, :value=>@action_form=='update' ? @t_change_shinsei.addr_1 : @m_custom.addr_1, :size=>60, :maxlength=>100 %></td>
+    </tr>
+    <tr>
+      <th colspan=2>ｱﾊﾟｰﾄ・ﾏﾝｼｮﾝ・ﾋﾞﾙ名</th>
+      <td><%= f.text_field :addr_2, :value=> @action_form=='update' ? @t_change_shinsei.addr_2 : @m_custom.addr_2, :size=>60, :maxlength=>100 %></td>
+    </tr>
+    <tr>
+      <th colspan=2>使用内容</th>
+      <td><%= f.select :use_content, @use_contents, { :include_blank => true, :selected => @action_form=='update' ? @t_change_shinsei.use_content : @m_custom.use_content} %></td>
+    </tr>
+    <tr>
+      <th colspan=2>利用世帯数</th>
+      <td><%= f.text_field :setai_count, :value=> @action_form=='update' ? @t_change_shinsei.setai_count : @m_custom.setai_count, :size=>5, :maxlength=>4 %></td>
+    </tr>
+    <tr>
+      <th colspan=2>利用人数</th>
+      <td><%= f.text_field :use_count, :value=> @action_form=='update' ? @t_change_shinsei.use_count : @m_custom.use_count, :size=>5, :maxlength=>4 %></td>
+    </tr>
+    <tr>
+      <th colspan=2>備考</th>
+      <td><%= f.text_area :memo, :value=> @action_form=='update' ? @t_change_shinsei.memo : @m_custom.memo, :rows=>2, :maxlength=>100 %></td>
+    </tr>
+    <tr>
+      <th rowspan=3>管理者</th>
+      <th>コード</th>
+      <td>
+        <%= f.text_field :admin_code, :value=>@action_form=='update' ? @t_change_shinsei.admin_code : @m_custom.admin_code, :size=>10, :onchange=>'getAdminInfo();' %>
+        <%= hidden_field 'search','admin_id' %>
+        <%= link_to "検索", admins_path.to_s + "?search_mode=1", :onclick=>"window.open(this.href,'hoge', 'height=600, width=800, resizable=yes, scrollbars=yes'); return false;" %>
+      </td>
+    </tr>
+    <tr>
+      <th>名称</th>
+      <td><div id="div_admin_name"><%= @t_change_shinsei.nil? ? "" : "" %></div></td>
+    </tr>
+    <tr>
+      <th>種別</th>
+      <td><div id="div_admin_type"><%= @t_change_shinsei.nil? ? "" : "" %></div></td>
+    </tr>
+    <tr>
+      <th colspan=2>収集区</th>
+      <td><%= f.select :route_code, @route_codes, { :include_blank => true, :selected => @action_form=='update' ? @t_change_shinsei.route_code : @m_route_point.nil? ? "" : @m_route_point.route_code} %></td>
+    </tr>
+    <tr>
+      <th colspan=2>ステータス</th>
+      <td><%= f.select :confirm_flg, @confirm_flgs %></td>
+    </tr>
+    <%= f.hidden_field :latitude, :value=> @action_form=='update' ? @t_change_shinsei.latitude : @m_custom.latitude, :readonly=>true %></td>
+    <%= f.hidden_field :longitude, :value=> @action_form=='update' ? @t_change_shinsei.longitude : @m_custom.longitude, :readonly=>true %></td>
+    </thead>
+  </table>
+  <br>
+  <div class="actions">
+    <% if current_user.authority!=9 %>
+      <%= f.submit :"更新", :onclick => ('return fchange_shinseis_submit();'), :class => 'btn btn-primary' %>
+    <% end %>
+    &nbsp;&nbsp;
+    <% if @action_form=='update' %>
+      <%= link_to '詳細', @t_change_shinsei, :class => 'btn', :style=>'text-decoration:none;' %>&nbsp;&nbsp;
+      <%= link_to '戻る', t_change_shinseis_path, :class => 'btn', :style=>'text-decoration:none;' %>
+    <% else %>
+      <%= link_to '戻る', m_customs_path(:hold_params=>1,:page=>params[:search_page].to_s,:search_custcode=>params[:search_custcode].to_s,:search_custname=>params[:search_custname].to_s,:search_custaddr=>params[:search_custaddr].to_s,:search_custadmin=>params[:search_custadmin].to_s,:search_routecode=>params[:search_routecode].to_s,:search_custpage=>params[:search_custpage].to_s,:search_delete=>params[:search_delete].to_s), :class => 'btn', :style=>'text-decoration:none;' %>
+    <% end %>
+  </div>
+<% end %>
+<% if not @map_zenrin_cid.blank? %>
+  <input type=button value="ゼンリン住宅地図" class='btn' style="position:relative; top:-20px; left:-10px; float: right;" onclick=fzenrin_common_map_display("<%= root_url(only_path: false) %>");>
+<% end %>
+<br>
+<div class="map_container">
+  <div id="map_canvas" style="width:100%; height:500px"></div>
+</div>
+<%= form_tag(t_change_shinseis_path, :method => 'post', :remote => true, :id => 'ajax_form', :name => 'ajax_form') do %>
+  <%= hidden_field 'ajax', 'admin_code' %>
+<% end %>
+<% content_for :scripts do %>
+  <script src="//maps.googleapis.com/maps/api/js?v=3.23&language=ja&key=<%= @map_key %>"></script>
+  <script src="//google-maps-utility-library-v3.googlecode.com/svn/tags/markerclustererplus/2.0.14/src/markerclusterer_packed.js" type="text/javascript"></script>
+  <script type="text/javascript" charset="utf-8">
+    var myLatlng;
+    var marker;
+    var map;
+
+    //リロード時の処理
+    getAdminInfo();
+    myLatlng = new google.maps.LatLng("<%= @action_form=='update' ? @t_change_shinsei.latitude.to_s : @m_custom.latitude.to_s %>","<%= @action_form=='update' ? @t_change_shinsei.longitude.to_s : @m_custom.longitude.to_s %>");
+    var mapOptions = {
+      auto_zoom: false,
+      zoom: 18,
+      auto_adjust: false,
+      center: myLatlng,
+      gestureHandling: "greedy",
+      mapTypeId: google.maps.MapTypeId.ROADMAP
+    }
+    map = new google.maps.Map(document.getElementById("map_canvas"), mapOptions);
+    
+    marker = new google.maps.Marker({
+      position: myLatlng,
+      title: "ステーション位置",
+      draggable: true,
+      map: map
+    });
+    google.maps.event.addListener(marker, 'dragend', function()
+    {
+      HandleDragend(this.getPosition(),marker);
+    });
+
+    function HandleDragend(pos,marker) {
+      var geocoder = new google.maps.Geocoder();
+      geocoder.geocode({
+        latLng: pos
+      }, function(responses) {
+        if (responses && responses.length > 0) {
+            var vMaker;
+            var vAddr = responses[0].formatted_address.replace("日本, ", "");
+            document.getElementById('t_change_shinsei_latitude').value =pos.lat();
+            document.getElementById('t_change_shinsei_longitude').value =pos.lng();
+       }
+      });
+    }
+
+    function fchange_shinseis_submit(){
+      if (document.getElementById("t_change_shinsei_shinsei_kbn").value.length<=0) {
+        alert("申請区分は入力必須です。");
+        return false;
+      }
+      if (document.getElementById("t_change_shinsei_shinsei_date").value.length<=0) {
+        alert("申請日は入力必須です。");
+        return false;
+      }else{
+        if (commonCkDate(document.getElementById("t_change_shinsei_shinsei_date").value)==false){
+          alert("申請日の日付形式が正しくありません。（yyyy/mm/dd）");
+          return false;
+        }
+      }
+      if (document.getElementById("t_change_shinsei_kibou_date").value.length<=0) {
+        alert("希望日は入力必須です。");
+        return false;
+      }else{
+        if (commonCkDate(document.getElementById("t_change_shinsei_kibou_date").value)==false){
+          alert("希望日の日付形式が正しくありません。（yyyy/mm/dd）");
+          return false;
+        }
+      }
+      if(document.getElementById('t_change_shinsei_setai_count').value.length>0 && document.getElementById("t_change_shinsei_setai_count").value.match(/[^0-9]+/)){
+        alert("利用世帯数は半角数字で入力してください。");
+        return false;
+      }
+      if(document.getElementById('t_change_shinsei_use_count').value.length>0 && document.getElementById("t_change_shinsei_use_count").value.match(/[^0-9]+/)){
+        alert("利用人数は半角数字で入力してください。");
+        return false;
+      }
+      if (document.getElementById("t_change_shinsei_admin_code").value.length>0 && document.getElementById("search_admin_id").value.length<=0) {
+        alert("管理者コードが正しくありません。");
+        return false;
+      }
+      if(window.confirm('更新しますがよろしいですか？')){
+        return true;
+      }else{
+        return false;
+      }
+    }
+    function getAdminInfo() {
+      document.getElementById("ajax_admin_code").value = document.getElementById("t_change_shinsei_admin_code").value;
+      $("#ajax_form").submit();
+    }
+  </script>
+<% end %>

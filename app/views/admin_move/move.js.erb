@@ -1,0 +1,9 @@
+switch(<%= @ajaxflg %>){
+  case -5:
+    alert("管理者が存在しません。再度やり直してください。");
+    break;
+  case 5:
+    document.getElementById("div_admin_name").innerHTML = "<%= @cust_name %>";
+    document.getElementById("div_admin_type").innerHTML = "<%= @admin_type %>";
+    break;
+}

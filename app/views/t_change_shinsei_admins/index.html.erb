@@ -1,0 +1,122 @@
+<h1>管理者変更申請一覧画面</h1>
+<p id="notice"><%= alert %></p>
+<table>
+  <thead>
+    <%= form_tag(t_change_shinsei_admins_path, method: "get") do %>
+    <tr>
+      <th>管理者名</th>
+      <td><%= text_field 'search_name', 'query', :size => 50, :value => params[:search_name].nil? ? "" : params[:search_name][:query] %></td>
+      <th>管理者ｺｰﾄﾞ</th>
+      <td><%= text_field 'search', 'query', :size => 20, :value => params[:search].nil? ? "" : params[:search][:query]  %></td>
+    </tr>
+    <tr>
+      <th>変更予定日</th>
+      <td>
+        <%= text_field 'search_str', 'str_date', :class => 'datepicker', :size => 10, :maxlength => 10, :value => params[:search_str].nil? ? "" : params[:search_str][:str_date] %>
+        ～
+        <%= text_field 'search_end', 'end_date', :class => 'datepicker', :size => 10, :maxlength => 10, :value => params[:search_end].nil? ? "" : params[:search_end][:end_date] %>
+      </td>
+      <th>ステータス</th>
+      <td><%= select 'search_confirm', 'query', @confirm_flgs, { :include_blank => true, :selected => params[:search_confirm].nil? ? 0 : params[:search_confirm][:query]} %></td>
+    </tr>
+    <tr>
+      <th>全画面表示<%= check_box 'search_all', 'query', {:checked => @bln_all} %></th>
+      <td colspan=3 align=center><%= submit_tag "検索", :class => 'btn btn-primary' %></td>
+    <tr>
+    <% end %>
+  </thead>
+</table>
+<br>
+<%= form_tag("t_change_confirm_admins", method: "post", id: "inputform", name: "inputform", :multipart =>true ) do %>
+  <% if current_user.authority!=9 %>
+    <input type=button value="更新確認画面へ進む" onClick="fshinsei_next_dsp();" class='btn btn-primary'>
+  <% end %>
+  <br>
+  <br>
+  <% if @bln_all==false %>
+    <%= paginate(@t_change_shinseis) %>
+  <% end %>
+  <table>
+    <thead>
+      <tr>
+        <th><input type=checkbox name=shinsei_chk_all id=shinsei_chk_all onClick="fshinsei_chk_all();"></th>
+        <th>作成日</th>
+        <th>変更予定日</th>
+        <th>管理者ｺｰﾄﾞ</th>
+        <th>管理者名</th>
+        <th>ステータス</th>
+        <th></th>
+        <% if current_user.authority!=9 %>
+          <th></th>
+        <% end %>
+      </tr>
+    </thead>
+    <tbody>
+      <% @cnt_no = 0 %>
+      <% @t_change_shinseis.each do |t_change_shinsei| %>
+<%
+        case t_change_shinsei.confirm_flg.to_s
+          when "1" then
+            @bgcolor_td = "bgcolor=wheat"
+          when "9" then
+            @bgcolor_td = "bgcolor=lightgrey"
+        else
+            @bgcolor_td = ""
+        end
+%>
+        <tr>
+          <td align=center <%= @bgcolor_td %>>
+            <% if t_change_shinsei.confirm_flg.to_s=="0" %>
+              <input type=checkbox name=shinsei_chk[] id=shinsei_chk_<%= @cnt_no %> value="<%= t_change_shinsei.id %>">
+            <% end %>
+          </td>
+          <td <%= @bgcolor_td %>><%= t_change_shinsei.shinsei_date.strftime("%Y/%m/%d") %></td>
+          <td <%= @bgcolor_td %>><%= t_change_shinsei.kibou_date.strftime("%Y/%m/%d") %></td>
+          <td <%= @bgcolor_td %>><%= t_change_shinsei.cust_code %></td>
+          <td <%= @bgcolor_td %>><%= t_change_shinsei.cust_name %></td>
+          <td <%= @bgcolor_td %>><%= t_change_shinsei.confirm_name %></td>
+          <td <%= @bgcolor_td %>><%= link_to '詳細', t_change_shinsei_admins_path.to_s + "/" + t_change_shinsei.id.to_s + "_0", :class => 'btn btn-mini' %></td>
+          <% if current_user.authority!=9 %>
+            <td <%= @bgcolor_td %>><%= link_to '編集', edit_t_change_shinsei_admin_path(t_change_shinsei), :class => 'btn btn-mini' %></td>
+          <% end %>
+        </tr>
+        <% @cnt_no = @cnt_no + 1 %>
+      <% end %>
+    </tbody>
+  </table>
+<% end %>
+<%= content_for :scripts do %>
+  <script type="text/javascript" charset="utf-8">
+    function fshinsei_chk_all(){
+      var maxCount = eval(<%= @t_change_shinseis.length %>);
+      
+      for (var i = 0; i < maxCount; i++) {
+        if(document.getElementById("shinsei_chk_"+i)){
+          if(document.getElementById("shinsei_chk_all").checked){
+            document.getElementById("shinsei_chk_"+i).checked = true;
+          }else{
+            document.getElementById("shinsei_chk_"+i).checked = false;
+          }
+        }
+      }
+    }
+    function fshinsei_next_dsp(){
+      var maxCount = eval(<%= @t_change_shinseis.length %>);
+      var shinsei_chk_flg = 0;
+      
+      for (var i = 0; i < maxCount; i++) {
+        if(document.getElementById("shinsei_chk_"+i)){
+          if(document.getElementById("shinsei_chk_"+i).checked){
+            shinsei_chk_flg=1;
+            break;
+          }
+        }
+      }
+      if(shinsei_chk_flg==0){
+        alert("更新対象をチェックしてください。");
+        return false;
+      }
+      document.inputform.submit();
+    }
+  </script>
+<% end %>

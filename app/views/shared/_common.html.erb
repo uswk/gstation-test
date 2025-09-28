@@ -1,0 +1,15 @@
+<!-- ゼンリン住宅地図ダイアログ用DIV -->
+<div id="modal_zenrin_map_common" style="display:none;">
+  <span id=tag_sub_zenrin_map_common></span>
+  <%= hidden_field_tag 'zenrin_latitude', @def_lat %>
+  <%= hidden_field_tag 'zenrin_longitude', @def_lng %>
+  <%= hidden_field_tag 'zenrin_zoom' %>
+  <%= hidden_field_tag 'zenrin_address', @def_address %>
+  <%= hidden_field_tag 'zenrin_keyword' %>
+  <%= hidden_field_tag 'rb_keyword' %>
+  <%= hidden_field_tag 'zenrin_radius_distance' %>
+</div>
+<!-- ステーション照会ダイアログ用DIV -->
+<div id="modal_station_detail_common" style="display:none;">
+  <span id=tag_sub_station_detail_common></span>
+</div>

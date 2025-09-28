@@ -1,0 +1,261 @@
+switch(<%= @ajax_flg %>){
+  case 1:  //画面表示
+    var id;
+    var cust_kbn;
+    var cust_code;
+    var cust_name;
+    var finish_timing;
+    var mikaishu_count;
+    var info;
+    var car_code;
+    var car_reg_code;
+    var driver_code;
+    var sub_driver_code1;
+    var sub_driver_code2;
+    var driver_name;
+    var sub_driver_name1;
+    var sub_driver_name2;
+    var work_timing;
+    var seq_id = 0;
+    var contentString;
+    var icon;
+    var infowindow = new Array();
+    var msg_color = "";
+    
+    $("span#tag_time").text("<%= @now_time %>" + " 時点");
+
+    $("div#overflow").remove();
+    var strHtml = "<div id='overflow' style='overflow: scroll; height:50vh;'>";
+    strHtml = strHtml + "<table>";
+    strHtml = strHtml + "<thead>";
+    strHtml = strHtml + "<tr>";
+    strHtml = strHtml + "<th>msg</th>";
+    strHtml = strHtml + "<th>車両</th>";
+    strHtml = strHtml + "<th>時間</th>";
+    strHtml = strHtml + "<th>&nbsp;</th>";
+    strHtml = strHtml + "<th>&nbsp;</th>";
+    strHtml = strHtml + "</tr>";
+    strHtml = strHtml + "</thead>";
+    strHtml = strHtml + "<tbody>";
+<%
+    if not @t_tracks.nil?
+      @t_tracks.each do |t_track|
+%>
+        latitude = "<%= t_track.latitude %>";
+        longitude = "<%= t_track.longitude %>";
+        car_id =  "<%= t_track.car_id %>";
+        car_code =  "<%= t_track.car_code %>";
+        car_reg_code = "<%= t_track.car_reg_code %>";
+        work_timing = "<%= t_track.time.try(:strftime, "%Y/%m/%d %H:%M:%S") %>";
+        driver_code = "<%= t_track.driver_code %>";
+        sub_driver_code1 = "<%= t_track.sub_driver_code1 %>";
+        sub_driver_code2 = "<%= t_track.sub_driver_code2 %>";
+        driver_name = "<%= t_track.driver_name %>";
+        sub_driver_name1 = "<%= t_track.sub_driver_name1 %>";
+        sub_driver_name2 = "<%= t_track.sub_driver_name2 %>";
+        
+        myLatlng = new google.maps.LatLng(latitude,longitude);
+        
+        contentString = "<div style='width:340px; height:110px;'><h3>車両：" + car_reg_code;
+        if(driver_code){
+          contentString = contentString + "<br>運転手：" + driver_name;
+        }
+        if(sub_driver_code1){
+          contentString = contentString + "<br>副乗務員1：" + sub_driver_name1;
+        }
+        if(sub_driver_code2){
+          contentString = contentString + "<br>副乗務員2：" + sub_driver_name2;
+        }
+        contentString = contentString + "<br>時間：" + work_timing + "</h3></div>";
+        icon = "images/car.png";
+
+        infowindow[seq_id] = new google.maps.InfoWindow({
+          content: contentString,
+          disableAutoPan: true
+        });
+        marker[seq_id] = new google.maps.Marker({
+          position: myLatlng,
+          icon: icon,
+          map: map,
+          zIndex: 2,
+          title: ""+seq_id
+        });
+        marker_text[seq_id] = new markerWithLabel.MarkerWithLabel({
+          position: myLatlng,
+          map: map,
+          icon: {
+            path: google.maps.SymbolPath.BACKWARD_OPEN_ARROW,
+            scale: 0,
+          },
+          labelContent: " "+car_reg_code,
+          labelAnchor: new google.maps.Point(-26, -14),
+          labelClass: "markerwithlabel-labels",
+          labelStyle: { opacity: 1.0 },
+          zIndex: 3,
+          clickable: false
+        });
+        google.maps.event.addListener(marker[seq_id], 'click', function() {
+          //情報ウィンドウ閉じる
+          for(var i = 0; i < seq_id; i++){
+            infowindow[i].close();
+          }
+          infowindow[this.getTitle()].open(map,marker[this.getTitle()]);
+        });
+        strHtml = strHtml + "<div class='link-s'>";
+        strHtml = strHtml + "<tr onClick='mClickTR(this)' onmouseover='mouseOverTR(this);' onmouseout='mouseOutTR(this);'>";
+        strHtml = strHtml + "<td align='center'><input name=message_chk[" + seq_id + "] type='hidden' value='0'><input id=message_chk_" + seq_id + " name=message_chk[" + seq_id + "] type='checkbox' value=" + car_id + "></td>";
+        strHtml = strHtml + "<td width=45%>" + car_reg_code + "</td>";
+        strHtml = strHtml + "<td width=25%>" + work_timing + "</td>";
+        strHtml = strHtml + "<td width=15%>";
+        strHtml = strHtml + "<input type=button value='軌跡' onclick=JtrackDisplay('" + car_code + "'); class='btn btn-mini'>";
+        strHtml = strHtml + "</td>";
+        strHtml = strHtml + "<td width=15%>";
+        msg_color="";
+        <% if not t_track.msg_max_answer.blank? %>
+          msg_color=" style='color:blue;'";
+        <% elsif not t_track.msg_car_id.blank? %>
+          msg_color=" style='color:red;'";
+        <% end %>
+        strHtml = strHtml + "<input type=button value='msg' onclick='return JmessageDisplay(" + car_id + ");' class='btn btn-mini' " + msg_color + ">";
+        strHtml = strHtml + "</td>";
+        strHtml = strHtml + "<input id=latitude_" + seq_id + " name=latitude[" + seq_id + "] type=hidden value=" + latitude + ">";
+        strHtml = strHtml + "<input id=longitude_" + seq_id + " name=longitude[" + seq_id + "] type=hidden value=" + longitude + ">";
+        strHtml = strHtml + "</tr>";
+        strHtml = strHtml + "</div>";
+        
+        seq_id += 1;
+<%
+      end
+%>
+      document.getElementById("max_count").value = eval(<%= @t_tracks.length %>);
+<%
+    else
+%>
+      document.getElementById("max_count").value = 0;
+<%
+    end
+    
+    if not @m_customs.nil?
+      @m_customs.each do |custom|
+%>
+        id = "<%= custom.id %>";
+        cust_kbn = "<%= custom.cust_kbn %>";
+        cust_code = "<%= custom.cust_code %>";
+        cust_name = "<%= custom.cust_name %>";
+        latitude = "<%= custom.latitude %>";
+        longitude = "<%= custom.longitude %>";
+        finish_timing = "<%= custom.finish_timing %>";
+        mikaishu_count = "<%= custom.mikaishu_count.to_i %>";
+        info = "<%= custom.info %>";
+
+        myLatlng = new google.maps.LatLng(latitude,longitude);
+
+        contentString = "<div style='width:450px; height:220px;'><h3 class=headding01>" + cust_name + "</h3>" + decodeURIComponent(info) + "</div>";
+        contentString = contentString + "<br>";
+        contentString = contentString + "<input type=button value='メモ' onclick=fcustom_memo_common('" + cust_code + "','<%= root_url(only_path: false) %>'); class='btn'>";
+        contentString = contentString + "&nbsp;&nbsp;<input type=button value='収集履歴' onclick=fcustom_carrun_common('" + cust_kbn + "','" + cust_code + "','<%= root_url(only_path: false) %>'); class='btn'>";
+        contentString = contentString + "&nbsp;&nbsp;<input type=button value='詳細' onclick=fcustom_detail_common('" + id + "','<%= root_url(only_path: false) %>',''); class='btn'>";
+
+        if(!finish_timing){
+          icon = "images/marker_icon.png";
+        }else{
+          if(eval(mikaishu_count)>0){
+            icon = "images/marker_icon3.png";
+          }else{
+            icon = "images/marker_icon2.png";
+          }
+        }
+
+        infowindow[seq_id] = new google.maps.InfoWindow({
+          content: contentString,
+          disableAutoPan: true
+        });
+        marker[seq_id] = new google.maps.Marker({
+          position: myLatlng,
+          icon: icon,
+          map: map,
+          zIndex: 1,
+          title: ""+seq_id
+        });
+        google.maps.event.addListener(marker[seq_id], 'click', function() {
+          //情報ウィンドウ閉じる
+          for(var i = 0; i < seq_id; i++){
+            infowindow[i].close();
+          }
+          infowindow[this.getTitle()].open(map,marker[this.getTitle()]);
+        });
+        seq_id += 1;
+<%
+      end
+    end
+%>
+
+    strHtml = strHtml + "</tbody>";
+    strHtml = strHtml + "</table>";
+    strHtml = strHtml + "</div>";
+    $("#tag_sub").after(strHtml);
+    
+    //ラインを消去
+    JtrackLineRemove();
+    
+    break;
+    
+  case 2:  //軌跡
+    var track_seq_id = 0;
+    var track_count = 20;
+    var icon = "images/marker_icon_point.png";
+    
+    //ラインを消去
+    JtrackLineRemove();
+
+    //軌跡情報の取得
+    var latlngData2 = (new Function("return " + "[" + decodeURIComponent("<%= @track_latlng %>")+ "]"))();
+    //ラインマーカー表示
+    for (i = 0;i < latlngData2.length;i++) {  
+      var latlng2 = new google.maps.LatLng(latlngData2[i].lat, latlngData2[i].lng);
+      points.push(latlng2);
+      
+      //走行時間は２０件に一回表示
+      if(track_count>=20){
+        var track_time = (""+latlngData2[i].time).substr(0,4)+"/"+(""+latlngData2[i].time).substr(4,2)+"/"+(""+latlngData2[i].time).substr(6,2)+" "+(""+latlngData2[i].time).substr(8,2)+":"+(""+latlngData2[i].time).substr(10,2)+":"+(""+latlngData2[i].time).substr(12,2);
+        lineMarker[track_seq_id] = new google.maps.Marker({
+          position: latlng2,
+          icon: icon,
+          map: map,
+          title: track_time
+        });
+        google.maps.event.addListener(lineMarker[track_seq_id], 'click', function() {
+          alert("走行日時：" + this.getTitle());
+        });
+        track_seq_id = track_seq_id + 1;
+        track_count = 1;
+      }else{
+        track_count = track_count + 1;
+      }
+    }
+
+
+    // ラインを作成
+    polyLineOptions.path = points;
+    poly = new google.maps.Polyline(polyLineOptions);
+    poly.setMap(map);
+    
+    break;
+  case 3:  //メッセージ送信成功
+    document.getElementById("msg_flg").value = 0;
+    //メッセージダイアログ閉じる
+    $('#modal').dialog("close");
+    //チェックボックス外す
+    var maxCount = eval(document.getElementById("max_count").value);
+    for (var i = 0; i < maxCount; i++) {
+      if(document.getElementById("message_chk_"+i).checked){
+        document.getElementById("message_chk_"+i).checked = false;
+      }
+    }
+    alert("メッセージ送信が完了しました。");
+    break;
+  case 9:  //メッセージ送信失敗
+    document.getElementById("msg_flg").value = 0;
+    alert("メッセージ送信に失敗しました。");
+    break;
+}

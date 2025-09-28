@@ -1,0 +1,61 @@
+<h1>ごみ回収状況</h1>
+
+<div id="layer"></div>
+
+<h3><font color=blue><%= Time.now.strftime("%Y年%m月%d日(#{@m_combo.class_namea}) %H:%M:%S") %></font>&nbsp;時点での回収状況です。</h3>
+<br>
+キーワード ： <input id="address" type="textbox" size=50 value="<%= @def_address %>">
+<input type="image" src="images/search_button.png" alt="検索" align="top" onclick="codeAddress()">
+</div>
+<br><br>
+<div class="map_container"> 
+  <div id="map_canvas" style="width:100%; height:500px"></div>
+</div>
+
+<form action="general" data-remote="true" id="marker_form" name="marker_form" method="post">
+  <%= hidden_field 'northeast_lat', '' %>
+  <%= hidden_field 'southwest_lat', '' %>
+  <%= hidden_field 'northeast_lng', '' %>
+  <%= hidden_field 'southwest_lng', '' %>
+</form>
+
+<% content_for :scripts do %>
+  <script src="//maps.googleapis.com/maps/api/js?language=ja&sensor=false&key=<%= @map_key %>"></script>
+  <script src="//google-maps-utility-library-v3.googlecode.com/svn/tags/markerclustererplus/2.0.14/src/markerclusterer_packed.js" type="text/javascript"></script>
+  <script type="text/javascript" charset="utf-8">
+    
+    var marker = new Array();
+    var myLatlng = new google.maps.LatLng("<%= @def_latitude %>","<%= @def_longitude %>");
+    var mapOptions = {
+      auto_zoom: true,
+      zoom: 18,
+      auto_adjust: false,
+      center: myLatlng,
+      mapTypeId: google.maps.MapTypeId.ROADMAP
+    }
+    var map = new google.maps.Map(document.getElementById("map_canvas"), mapOptions);
+
+    //地図移動時
+    google.maps.event.addListener(map, 'idle', function(object) {
+      //マーカークリア
+      for(var i = 0; i < marker.length; i++){
+        marker[i].setMap(null);
+      }
+      //表示サイズが16以上の場合マーカー表示
+      if(map.zoom>=16){
+        $('#layer').show();
+        //緯度経度取得
+        document.getElementById("northeast_lat_").value =map.getBounds().getNorthEast().lat();
+        document.getElementById("southwest_lat_").value =map.getBounds().getSouthWest().lat();
+        document.getElementById("northeast_lng_").value =map.getBounds().getNorthEast().lng();
+        document.getElementById("southwest_lng_").value =map.getBounds().getSouthWest().lng();
+        //再読み込み
+        $("#marker_form").submit(); 
+      }
+    });
+    
+function call_vb_sub(){
+ window.external.CallFromJavascript(map.getCenter().lat(), map.getCenter().lng());
+}
+  </script>
+<% end %>

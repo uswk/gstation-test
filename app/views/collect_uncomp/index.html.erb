@@ -1,0 +1,84 @@
+<h1>収集未完了一覧画面</h1>
+<%= form_tag("collect_uncomp", method: "get") do %>
+  <table>
+    <thead>
+      <tr>
+        <th>収集区</th>
+        <td><%= select 'search', 'route', @route_codes, { :include_blank => true, :selected => params[:search].nil? ? "" : params[:search][:route]} %></td>
+        <th>出庫日</th>
+        <td>
+          <%= text_field 'search', 'date', :class => 'datepicker', :size => 10, :maxlength => 10, :value => params[:search].nil? ? Date.today.try(:strftime, "%Y/%m/%d") : params[:search][:date] %>
+        </td>
+      </tr>
+      <% if current_user.itaku_code.blank? %>
+        <th>委託会社</th>
+        <td colspan=3><%= select 'search', 'itaku', @itaku_codes, { :include_blank => true, :selected => params[:search].nil? ? "" : params[:search][:itaku]} %></td>
+      <% end %>
+      <tr>
+        <td align=center colspan=4>
+          <%= submit_tag "検索", :class => 'btn btn-light' %>
+          &nbsp;&nbsp;
+          <%= button_tag "Excel出力", :type=>'button', :class => 'btn btn-light', :onclick => 'return collect_uncomp_excel();' %>
+        </td>
+      </tr>
+    </thead>
+  </table>
+<% end %>
+<%= form_tag("collect_uncomp", method: "post", :name => "excel_form", :id=>"excel_form") do %>
+  <%= hidden_field_tag :excel_route_code %>
+  <%= hidden_field_tag :excel_date %>
+  <%= hidden_field_tag :excel_itaku_code %>
+<% end %>
+<br>
+<%= @t_collect_lists.length %>件
+<table>
+  <thead>
+    <tr>
+      <% if current_user.itaku_code.blank? %>
+        <th>委託会社</th>
+      <% end %>
+      <th>収集区</th>
+      <th>車両</th>
+      <th>出庫日時</th>
+      <th>帰庫日時</th>
+      <th>ｽﾃｰｼｮﾝｺｰﾄﾞ</th>
+      <th>ステーション名</th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+    <% @t_collect_lists.each do |t_collect_list| %>
+      <tr>
+        <% if current_user.itaku_code.blank? %>
+          <td><%= t_collect_list.itaku_name %></td>
+        <% end %>
+        <td><%= t_collect_list.route_name %></td>
+        <td><%= t_collect_list.car_reg_code %></td>
+        <td><%= t_collect_list.out_timing.try(:strftime, "%Y/%m/%d %H:%M:%S") %></td>
+        <td><%= t_collect_list.in_timing.try(:strftime, "%Y/%m/%d %H:%M:%S") %></td>
+        <td><%= t_collect_list.cust_code %></td>
+        <td><%= t_collect_list.cust_name %></td>
+        <td><%= link_to '日報', t_carrun_path(:id=>t_collect_list.id, :uncomp_flg=>1, :outdate => @outdate, :routecode=>@routecode, :itakucode=>@itakucode), :class => 'btn btn-mini' %></td>
+      </tr>
+    <% end %>
+  </tbody>
+</table>
+<% content_for :scripts do %>
+<script type="text/javascript" charset="utf-8">
+  function collect_uncomp_excel(){
+    if (confirm("Excelで出力しますが、よろしいですか？")){
+      document.getElementById("excel_route_code").value = document.getElementById("search_route").value;
+      document.getElementById("excel_date").value = document.getElementById("search_date").value;
+      if(document.getElementById("search_itaku")){
+        document.getElementById("excel_itaku_code").value = document.getElementById("search_itaku").value;
+      }else{
+        document.getElementById("excel_itaku_code").value = "";
+      }
+      $('#excel_form').submit();
+      return true;
+    }else{
+      return false;
+    }
+  }
+</script>
+<% end %>

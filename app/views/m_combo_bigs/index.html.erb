@@ -1,0 +1,66 @@
+<h1>大分類マスタ一覧画面</h1>
+
+<table>
+  <thead>
+    <tr>
+      <td>
+        <%= form_tag("m_combo_bigs", method: "get") do %>
+          名称 ： <%= text_field 'search', 'query', :value => params[:search].nil? ? "" : params[:search][:query]  %>
+          <%= submit_tag "検索", :class => 'btn btn-light' %><br><br>
+          削除のみ ： <%= check_box 'search', 'delete', {:checked => @blndelete} %>
+        <% end %>
+      </td>
+    </tr>
+  </thead>
+</table>
+<br>
+<% if current_user.authority == 1 %>
+  <%= link_to '追加', new_m_combo_big_path, :style=>"color:white; text-decoration:none;", :class => 'btn btn-primary' %>
+<% end %>
+<br><br>
+
+<%= paginate(@m_combo_bigs) %>
+<table>
+  <thead>
+    <tr>
+      <th>大分類コード</th>
+      <th>名称</th>
+      <th>略称</th>
+      <th>システム名称</th>
+      <th>システムフラグ</th>
+      <th></th>
+      <th></th>
+      <% if current_user.authority == 1 %>
+        <th></th>
+        <th></th>
+      <% end %>
+    </tr>
+  </thead>
+
+  <tbody>
+    <% @m_combo_bigs.each do |m_combo_big| %>
+      <tr>
+        <td <%= @bgcolor_td %>><%= m_combo_big.class_1 %></td>
+        <td <%= @bgcolor_td %>><%= m_combo_big.class_name %></td>
+        <td <%= @bgcolor_td %>><%= m_combo_big.class_namea %></td>
+        <td <%= @bgcolor_td %>><%= m_combo_big.system_name %></td>
+        <td <%= @bgcolor_td %>><%= m_combo_big.system_flg %></td>
+        <td <%= @bgcolor_td %>><%= link_to '分類一覧', m_combos_path(:class1 => m_combo_big.class_1), :class => 'btn btn-light btn-sm' %></td>
+        <td <%= @bgcolor_td %>><%= link_to '詳細', m_combo_big, :class => 'btn btn-light btn-sm' %></td>
+        <% if current_user.authority == 1 %>
+          <% if m_combo_big.system_flg == 1 %>
+            <td <%= @bgcolor_td %>>&nbsp;</td>
+            <td <%= @bgcolor_td %>>&nbsp;</td>
+          <% else %>
+            <td <%= @bgcolor_td %>><%= link_to '編集', edit_m_combo_big_path(m_combo_big), :class => 'btn btn-light btn-sm' %></td>
+            <% if @blndelete == false %>
+              <td <%= @bgcolor_td %>><%= link_to '削除', m_combo_big, method: :delete, data: { confirm: '削除しますがよろしいですか?' }, :style=>"color:white;", :class => 'btn btn-sm btn-danger' %></td>
+            <% else %>
+              <td <%= @bgcolor_td %>><%= link_to '復活', m_combo_big, method: :delete, data: { confirm: '削除データを復活しますがよろしいですか?' }, :style=>"color:white;", :class => 'btn btn-sm btn-danger' %></td>
+            <% end %>
+          <% end %>
+        <% end %>
+      </tr>
+    <% end %>
+  </tbody>
+</table>

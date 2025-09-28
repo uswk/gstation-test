@@ -1,0 +1,31 @@
+<h1>大分類マスタ詳細画面</h1>
+
+<table>
+  <thead>
+    <tr>
+      <th width=30%>大分類コード</th>
+      <td width=70%><%= @m_combo_big.class_1 %></td>
+    </tr>
+    <tr>
+      <th>名称</th>
+      <td><%= @m_combo_big.class_name %></td>
+    </tr>
+    <tr>
+      <th>略称</th>
+      <td><%= @m_combo_big.class_namea %></td>
+    </tr>
+    <tr>
+      <th>システム名称</th>
+      <td><%= @m_combo_big.system_name %></td>
+    </tr>
+    <tr>
+      <th>システムフラグ</th>
+      <td><%= @m_combo_big.system_flg %></td>
+    </tr>
+  </thead>
+</table>
+<br>
+<% if current_user.authority == 1 && @m_combo_big.system_flg!=1 %>
+  <%= link_to '編集', edit_m_combo_big_path(@m_combo_big), :class => 'btn', :style=>'text-decoration:none;' %>&nbsp;&nbsp;
+<% end %>
+<%= link_to '戻る', m_combo_bigs_path, :class => 'btn', :style=>'text-decoration:none;' %>

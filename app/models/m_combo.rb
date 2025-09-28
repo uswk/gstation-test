@@ -1,0 +1,5 @@
+class MCombo < ActiveRecord::Base
+  #attr_accessible :class_1, :class_2, :class_code, :class_name, :class_namea, :value, :value2, :value3, :value4, :value5, :system_flg, :delete_flg
+
+  validates :class_1, :uniqueness => {:scope => [:class_2, :class_code], :message =>"　分類コードが重複しています。"}
+end

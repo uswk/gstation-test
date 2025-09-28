@@ -1,0 +1,300 @@
+<!--
+<% content_for :body_attributes do %>
+  data-turbo="false"
+<% end %>
+-->
+
+<h1>車両運行情報</h1>
+
+<div id="cover">
+<table>
+  <thead>
+    <%= form_tag("t_carrun_lists", method: "get") do %>
+      <tr>
+        <th>車両</th>
+        <td><%= select 'search', 'query', @m_cars, { :include_blank => true, :selected => params[:search].nil? ? "" : params[:search][:query]} %></td>
+        <th>収集区</th>
+        <td><%= select 'search_route', 'query', @route_codes, { :include_blank => true, :selected => params[:search_route].nil? ? "" : params[:search_route][:query]} %></td>
+      </tr>
+      <% if current_user.itaku_code.blank? %>
+        <th>委託会社</th>
+        <td colspan=3><%= select 'search_itaku', 'query', @itaku_codes, { :include_blank => true, :selected => params[:search_itaku].nil? ? "" : params[:search_itaku][:query]} %></td>
+      <% else %>
+        <%= hidden_field 'search_itaku', 'query' %>
+      <% end %>
+      <tr>
+        <td colspan=4 align=center>
+          <input type=button value='検索' onclick='return JreDisplay();' class='btn btn-light'>
+        </td>
+      </tr>
+    <% end %>
+  </thead>
+</table>
+<br>
+<form action="t_carrun_lists" data-remote="true" id="input_form" name="input_form" method="post">
+  <table>
+    <tr>
+      <td id="td_width" width=40% valign="top">
+        <% if current_user.authority!=9 %>
+          <span>
+            <input type=button value='メッセージ送信' onclick='return JcarMessage();' class='btn btn-light'>
+          </span>
+          <br><br>
+        <% end %>
+        <span id=tag_sub></span>
+        <span id=tag_time style="float: right;"></span>
+      </td>
+        <% if not @map_zenrin_cid.blank? %>
+          <input type=button value="ゼンリン住宅地図" class='btn btn-light' style="position:relative; top:-5px; left:-10px; float: right;" onclick=fzenrin_common_map_display("<%= root_url(only_path: false) %>");>
+        <% end %>
+      <td valign="top" width=60%>
+        <div class="map_container"> 
+          <div id="map_canvas" style="width:100%; height:70vh"></div>
+        </div>
+      </td>
+    </tr>
+  </table>
+  <%= hidden_field_tag :importance_flg %>
+  <%= hidden_field_tag :response_type %>
+  <%= hidden_field_tag :message %>
+  <%= hidden_field_tag :start_date %>
+  <%= hidden_field_tag :end_date %>
+  <%= hidden_field_tag :msg_flg, 0 %>
+  <%= hidden_field_tag :max_count, 0 %>
+</form>
+<div id="modal_message" style="display:none;">
+  <span id=tag_sub_message></span>
+</div>
+<%= form_with url: {controller: "t_carrun_lists", action: "create"}, local: false, id: "marker_form", html: {name: "marker_form", style: "display:none"} do |f| %>
+  <%= hidden_field "format", "text/javascript" %>
+  <%= hidden_field "kese", "kese" %>
+  <%= hidden_field 'search_car2', '' %>
+  <%= hidden_field 'search_route2', '' %>
+  <%= hidden_field 'search_itaku2', '' %>
+  <%= f.submit %>
+<% end %>
+<%= form_with url: {controller: "t_carrun_lists", action: "create"}, local: false, id: "track_form", html: {name: "track_form", style: "display:none"} do |f| %>
+  <%= hidden_field :track, :car_code %>
+  <%= f.submit %>
+<% end %>
+</div>
+<div id="modal" style="display:none;">
+  <br>
+  <table>
+    <thead>
+      <tr>
+        <th>応答種別</th>
+        <td><%= select :out, :response_type, @responses %></td>
+      </tr>
+      <tr>
+        <th>メッセージ</th>
+        <td>
+          <%= text_area :out, :message, :size=>"60x4" %>
+          <div style="font-size:10px; line-height:100%; margin-top:10px">※ []内に住所を入れるとナビ連動されます。&nbsp;&nbsp;(例)[東京都港区]</div>
+        </td>
+      </tr>
+      <tr>
+        <th>表示期間</th>
+        <td>
+          <%= text_field :out, :start_date, :class => 'datepicker input-small', :maxlength=>10, :value => @now_date %>
+          &nbsp;～&nbsp;
+          <%= text_field :out, :end_date, :class => 'datepicker input-small', :maxlength=>10, :value => @now_date %>
+        </td>
+      </tr>
+      <%= hidden_field :out, :importance_flg, :value=>1 %>
+    </thead>
+  </table>
+  <br>
+  <div class="form-actions">
+    &nbsp;&nbsp;<%= button_tag '送信', :onclick => 'return JcarMessageSend();', :class => 'btn btn-primary' %>
+    &nbsp;&nbsp;<%= button_tag '閉じる', :onclick => 'return JcarMessageClose();', :class => 'btn' %>
+  </div>
+</div>
+
+<%= content_for :scripts do %>
+  <script src="//maps.googleapis.com/maps/api/js?language=ja&key=<%= @map_key %>"></script>
+  <script src="//google-maps-utility-library-v3.googlecode.com/svn/tags/markerclustererplus/2.0.14/src/markerclusterer_packed.js" type="text/javascript"></script>
+  <script src="https://unpkg.com/@googlemaps/markerwithlabel/dist/index.min.js"></script>
+  <script type="text/javascript" charset="utf-8">
+    var marker = new Array();
+    var marker_text = new Array();
+    var _latitude;
+    var _longitude;
+    var poly;
+    var points = new Array();  // ライン用配列
+    var lineMarker = new Array();  //ラインマーカー用配列
+    var timeout_id = null;
+
+    _latitude = "<%= @def_latitude %>";
+    _longitude = "<%= @def_longitude %>";
+
+    var myLatlng = new google.maps.LatLng(_latitude,_longitude);
+    var mapOptions = {
+      auto_zoom: true,
+      zoom: 18,
+      auto_adjust: false,
+      center: myLatlng,
+      gestureHandling: "greedy",
+      mapTypeId: google.maps.MapTypeId.ROADMAP
+    }
+    // ラインオプションを作成
+    var polyLineOptions = {
+      path: null,
+      strokeWeight: 3,
+      strokeColor: "#ff0000",
+      strokeOpacity: "1"
+    };
+    var map = new google.maps.Map(document.getElementById("map_canvas"), mapOptions);
+    //初回表示
+    //JreDisplay(); ← rails-ujsのロード前に呼ばれてしまうのでうまくいかない
+
+    var gActiveobj;
+    function mouseOverTR( obj ) {
+      for (var i=0;i<obj.cells.length;i++ ) {
+        obj.cells[i].style.backgroundColor = "#FFFF55";
+      }
+    }
+    function mouseOutTR( obj ) {
+      if (obj!=gActiveobj){
+        for (var i=0;i<obj.cells.length;i++ ) {
+          obj.cells[i].style.backgroundColor = "";
+        }
+      }
+    }
+    function mClickTR(obj) {
+      if (gActiveobj){
+        for(var i=0;i<gActiveobj.cells.length;i++ ){
+          gActiveobj.cells[i].style.backgroundColor = "";
+        }
+      }
+      gActiveobj = obj;
+      for(var i=0;i<obj.cells.length;i++){
+        obj.cells[i].style.backgroundColor = "#FFFF55";
+      }
+      var rowindex = obj.rowIndex-1;
+      map.panTo(new google.maps.LatLng(marker[rowindex].position.lat(),marker[rowindex].position.lng()));
+    }
+    //検索ボタン押下時
+    function JreDisplay(){
+      //マーカークリア
+      for(var i = 0; i < marker.length; i++){
+        marker[i].setMap(null);
+      }
+      for(var i = 0; i < marker_text.length; i++){
+        marker_text[i].setMap(null);
+      }
+      document.getElementById("search_car2_").value = document.getElementById("search_query").value
+      document.getElementById("search_route2_").value = document.getElementById("search_route_query").value
+      document.getElementById("search_itaku2_").value = document.getElementById("search_itaku_query").value
+      //再読み込み
+      document.querySelector("#marker_form [type=submit]").click();
+    }
+    //軌跡表示
+    function JtrackDisplay(car_code){
+      document.getElementById("track_car_code").value = car_code;
+      document.querySelector("#track_form [type=submit]").click();
+    }
+    
+    //ライン削除
+    function JtrackLineRemove(){
+      if(poly){
+        poly.setMap(null);
+        points = new Array();
+      }
+      //マーカークリア
+      for(var i = 0; i < lineMarker.length; i++){
+        lineMarker[i].setMap(null);
+      }
+    }
+  //メッセージ表示
+    function JmessageDisplay(car_id){
+      var strHtml;
+      var intWidth = eval(window.innerWidth)*9/10;
+      var intHeight = eval(window.innerHeight)*9/10;
+      $("div#tag_message").remove();
+      strHtml = "<div id='tag_message'>";
+      strHtml = strHtml + "<iframe src=t_carrun_lists/" + car_id + " height=" + (intHeight*9/10) + " width=" + (intWidth*9/10) + ">";
+      strHtml = strHtml + "</iframe>";
+      strHtml = strHtml + "</div>";
+      $("#tag_sub_message").after(strHtml);
+      $('#modal_message').dialog({
+        title: "メッセージ履歴　",
+        modal: true,
+        show : "fade",
+        hide : "fade",
+        width: intWidth,
+        height: intHeight,
+        open:function(event, ui){ 
+          $(this).css('width', '100%');
+          $(this).css('height', '100%');
+          $(".ui-dialog-titlebar-close").show();
+        },
+        close: JmapDisplayBlock
+      });
+      //document.getElementById("map_canvas").style.display = "none";
+    }
+    //メッセージ
+    function JcarMessage(){
+      var maxCount = eval(<%= @t_tracks.length %>);
+      var message_chk_flg = 0;
+
+      for (var i = 0; i < maxCount; i++) {
+        if(document.getElementById("message_chk_"+i).checked){
+          message_chk_flg=1;
+          break;
+        }
+      }
+
+      if(message_chk_flg==0){
+        alert("メッセージを送る車両にチェックを入れて下さい。");
+        return false;
+      }
+      document.getElementById("out_importance_flg").value = 1;
+      document.getElementById("out_response_type").value = 0;
+      document.getElementById("out_message").value = "";
+      document.getElementById("out_start_date").value = "<%= @now_date %>";
+      document.getElementById("out_end_date").value = "<%= @now_date %>";
+      $('#modal').dialog({
+        title: "メッセージ送信　",
+        modal: true,
+        show : "fade",
+        hide : "fade",
+        width: 700,
+        height: 420,
+        open:function(event, ui){ 
+          $(".ui-dialog-titlebar-close").show();
+        },
+        close: JmapDisplayBlock
+      });
+      //document.getElementById("map_canvas").style.display = "none";
+    }
+    function JcarMessageSend(){
+      if(document.getElementById("out_message").value.length<=0){
+        alert("メッセージが入っていません。");
+        return false;
+      }
+      if (confirm("メッセージを送信しますが、よろしいですか？")){
+        document.getElementById("importance_flg").value = document.getElementById("out_importance_flg").value;
+        document.getElementById("response_type").value = document.getElementById("out_response_type").value;
+        document.getElementById("message").value = document.getElementById("out_message").value;
+        document.getElementById("start_date").value = document.getElementById("out_start_date").value;
+        document.getElementById("end_date").value = document.getElementById("out_end_date").value;
+        document.getElementById("msg_flg").value = 1;
+        $("#input_form").submit();
+        return false;
+      }else{
+        document.getElementById("msg_flg").value = 0;
+        return false;
+      }
+    }
+    function JcarMessageClose(){
+      $('#modal').dialog("close");
+      return false;
+    }
+    
+    //地図再表示
+    function JmapDisplayBlock(){
+      //document.getElementById("map_canvas").style.display = "block";
+    }
+  </script>
+<% end %>

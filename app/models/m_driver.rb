@@ -1,0 +1,6 @@
+class MDriver < ActiveRecord::Base
+  #attr_accessible :driver_code, :driver_name, :section_code, :itaku_code, :delete_flg
+  
+  validates :driver_code,  :uniqueness => {:case_sensitive => false, :message =>"　運転者コードが重複しています。"}
+
+end

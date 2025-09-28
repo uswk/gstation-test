@@ -1,0 +1,44 @@
+class TCollectList < ActiveRecord::Base
+  #attr_accessible :out_timing, :car_code, :spot_no, :cust_kbn, :cust_code, :finish_timing, :leave_timing, :arrive_timing, :mikaishu_count, :mikaishu_code, :cust_name, :latitude, :longitude, :delete_flg
+
+  validates :out_timing, :uniqueness => {:scope => [:car_code, :spot_no], :message =>"　出庫日時、車両、SEQが重複しています。"}
+
+  #def self.collect(t_collect_list)
+  #  collect_record = self.active_record(t_collect_list)
+  #  if collect_record
+  #    if t_collect_list.delete_flg.to_s=="1"
+  #      return collect_record.errors.full_messages unless collect_record.destroy
+  #      return nil
+  #    elsif !t_collect_list.arrive_timing.blank? and !collect_record.arrive_timing.blank?
+  #      if t_collect_list.arrive_timing.to_time < collect_record.arrive_timing.to_time
+  #        return nil
+  #      else
+  #        collect_record.finish_timing = t_collect_list.finish_timing
+  #        collect_record.leave_timing = t_collect_list.leave_timing
+  #        collect_record.arrive_timing = t_collect_list.arrive_timing
+  #        collect_record.mikaishu_count = t_collect_list.mikaishu_count
+  #        collect_record.mikaishu_code = t_collect_list.mikaishu_code
+  #        return collect_record.errors.full_messages unless collect_record.save
+  #        return nil
+  #      end
+  #    else
+  #      collect_record.finish_timing = t_collect_list.finish_timing
+  #      collect_record.leave_timing = t_collect_list.leave_timing
+  #      collect_record.arrive_timing = t_collect_list.arrive_timing
+  #      collect_record.mikaishu_count = t_collect_list.mikaishu_count
+  #      collect_record.mikaishu_code = t_collect_list.mikaishu_code
+  #      return collect_record.errors.full_messages unless collect_record.save
+  #      return nil
+  #    end
+  #  else
+  #    return t_collect_list.errors.full_messages unless t_collect_list.save
+  #    return nil
+  #  end
+  #end
+
+  def self.active_record(t_collect_list)
+    collect_records = TCollectList.where(:car_code => t_collect_list.car_code,:out_timing => t_collect_list.out_timing,:spot_no => t_collect_list.spot_no)
+    return collect_records.first
+  end
+
+end

@@ -1,0 +1,62 @@
+<h1>ごみ回収状況</h1>
+
+<div id="layer"></div>
+
+<h3><font color=blue><%= Time.now.strftime("%Y年%m月%d日(#{@m_combo.class_namea}) %H:%M:%S") %></font>&nbsp;時点での回収状況です。</h3>
+<% if not @map_zenrin_cid.blank? %>
+  <input type="button" id="mapChange" value="ゼンリン住宅地図に切替" onclick="map_change()" class='btn'>
+  <br>
+  <div id=id_zenrin_map_display style="<%= @zenrin_map_display.to_s %>">
+    <br>
+    住所 ： <input id="search_zenrin_address" type="textbox" size=50 value="<%= @def_address %>">
+    <input type="image" src="images/search_button.png" alt="検索" align="top" onclick="ZenrincodeAddress()">
+    <br>
+    キーワード ： <input id="search_zenrin_keyword" type="textbox" size=30>
+    <input type="radio" id="keyword1" name="rb_keyword" value="keyword1" checked="checked">
+    <label for="keyword1" id="keyword1_label">表札</label>
+    <input type="radio" id="keyword2" name="rb_keyword" value="keyword2">
+    <label for="keyword2">施設</label>
+    <% if @map_zenrin_tel.to_s=="1" %>
+      <input type="radio" id="keyword3" name="rb_keyword" value="keyword3">
+      <label for="keyword3">電話番号</label>
+    <% else %>
+      <input type="hidden" id="keyword3" name="rb_keyword">
+    <% end %>
+    <span id="radius_distance_span" style="display:none;">&nbsp;&nbsp;&nbsp;&nbsp;抽出範囲（半径） <input type="text" id="radius_distance" name="radius_distance" value="1000" size=4 maxlength=4> メートル</span>
+    <br>
+    ズームレベル：<span id=span_map_zenrin_zoom_size></span><span id=span_zenrin_station_display style="display:none; color:red;">&nbsp;【ステーション非表示】※ズームレベル10以上で表示されます</span><br>
+    <div id="mapContainer" style="position: relative; width:1000px; height:500px; border:1px solid #777777;"></div>
+    <br>
+    <input type="button" id="mapReload" value="地図再表示" onclick="map_reload()" class='btn'>
+  </div>
+<% end %>
+<div id=id_google_map_display style="<%= @google_map_display.to_s %>">
+  <br>
+  キーワード ： <input id="address" type="textbox" size=50 value="<%= @def_address %>">
+  <input type="image" src="images/search_button.png" alt="検索" align="top" onclick="codeAddress()">
+  
+  <br><br>ズームレベル：<span id=span_map_zoom_size></span><span id=span_station_display style="display:none; color:red;">&nbsp;【ステーション非表示】※ズームレベル16以上で表示されます</span><br>
+  <div class="map_container"> 
+    <div id="map_canvas" style="width:100%; height:500px"></div>
+  </div>
+</div>
+<%= form_with(url: {controller: "general", action: "ajax"}, local: false, id: "marker_form", html: {name: "marker_form", style: "display:none"}) do |f| %>
+  <%= hidden_field 'format', 'text/javascript' %>
+  <%= hidden_field 'northeast_lat', '' %>
+  <%= hidden_field 'southwest_lat', '' %>
+  <%= hidden_field 'northeast_lng', '' %>
+  <%= hidden_field 'southwest_lng', '' %>
+  <%= hidden_field_tag 'map_type', 1 %>
+  <%= f.submit id: "marker_form_submit" %>
+<% end %>
+<div id="modal_keyword_detail" style="display:none;">
+  <br>
+  <span id=tag_sub></span>
+</div>
+<%
+  if @map_zenrin_url.blank?
+    render :partial => "znettown"
+  else
+    render :partial => "zenrinmap"
+  end
+%>

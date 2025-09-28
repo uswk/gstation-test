@@ -1,0 +1,32 @@
+<%= form_for(@infomation) do |f| %>
+  <% if @infomation.errors.any? %>
+    <div id="error_explanation">
+      <h2><%= pluralize(@infomation.errors.count, "error") %>　以下の項目でエラーが発生したため、更新に失敗しました。</h2>
+
+      <ul>
+      <% @infomation.errors.full_messages.each do |msg| %>
+        <li><%= msg %></li>
+      <% end %>
+      </ul>
+    </div>
+  <% end %>
+  <table>
+    <thead>
+      <tr>
+        <th>日付</th>
+        <td><%= f.text_field :info_date, :value=>(f.object.info_date.blank? ? Date.today.try(:strftime, "%Y/%m/%d") :f.object.info_date.strftime('%Y/%m/%d')), :readonly => true, :maxlength=>10, :class => 'datepicker_sub' %></td>
+      </tr>
+      <tr>
+        <th>メッセージ</th>
+        <td><%= f.text_area :info_message, :rows=>8, :class=>"input-xxlarge" %></td>
+      </tr>
+    </thead>
+  </table>
+  <br>
+  <div class="actions">
+    <% if current_user.authority!=9 %>
+      <%= f.submit :"更新", :onclick => 'return confirm("更新しますがよろしいですか?")', :class => 'btn btn-primary' %>&nbsp;&nbsp;
+    <% end %>
+    <%= link_to '戻る', infomations_path, :class => 'btn', :style=>'text-decoration:none;' %>
+  </div>
+<% end %>

@@ -1,0 +1,57 @@
+<h1>ログ履歴一覧画面</h1>
+
+<table>
+  <thead>
+    <%= form_tag("t_log_hists", method: "get") do %>
+      <tr>
+        <th>期間</th>
+        <td colspan=3>
+          <%= text_field 'search_str', 'str_date', :class => 'datepicker', :size => 10, :maxlength => 10, :value => params[:search_str].nil? ? Date.today.try(:strftime, "%Y/%m/%d") : params[:search_str][:str_date] %>
+          &nbsp;&nbsp;～&nbsp;&nbsp;
+          <%= text_field 'search_end', 'end_date', :class => 'datepicker', :size => 10, :maxlength => 10, :value => params[:search_end].nil? ? Date.today.try(:strftime, "%Y/%m/%d") : params[:search_end][:end_date] %>
+        </td>
+      </tr>
+      <tr>
+        <th>作業内容</th>
+        <td><%= select 'search', 'log_kbn', @log_kbns, { :include_blank => true, :selected => params[:search].nil? ? "" : params[:search][:log_kbn]} %></td>
+        <th>種別</th>
+        <td><%= select 'search', 'change_type', @change_types, { :include_blank => true, :selected => params[:search].nil? ? "" : params[:search][:change_type]} %></td>
+      </tr>
+      <% if current_user.authority.to_s=="1" %>
+        <tr>
+          <th>ユーザー</th>
+          <td colspan=3><%= select 'search', 'query', @users, { :include_blank => true, :selected => params[:search].nil? ? "" : params[:search][:query]} %></td>
+        </tr>
+      <% end %>
+      <tr>
+        <td align=center colspan=4><%= submit_tag "検索", :class => 'btn' %>
+      </tr>
+    <% end %>
+  </thead>
+</table>
+<br>
+
+<%= paginate(@t_log_hists) %>
+<table>
+  <thead>
+    <tr>
+      <th>日時</th>
+      <th>ユーザー</th>
+      <th>作業内容</th>
+      <th>種別</th>
+      <th>コメント</th>
+    </tr>
+  </thead>
+
+  <tbody>
+    <% @t_log_hists.each do |t_log_hist| %>
+      <tr>
+        <td><%= t_log_hist.log_time.strftime("%Y-%m-%d %H:%M:%S") %></td>
+        <td><%= t_log_hist.user_name %></td>
+        <td><%= t_log_hist.menu_name %></td>
+        <td><%= t_log_hist.change_type_name %></td>
+        <td><%= t_log_hist.change_comment %></td>
+      </tr>
+    <% end %>
+  </tbody>
+</table>

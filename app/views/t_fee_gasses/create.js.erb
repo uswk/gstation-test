@@ -1,0 +1,26 @@
+switch(<%= @ajax_flg %>){
+  case 1:  //登録成功
+    //メッセージダイアログ閉じる
+    $('#modal_fee').dialog("close");
+    alert("給油データの登録が完了しました。");
+    $("#search_form").submit();
+    break;
+  case 2:  //更新成功
+    //メッセージダイアログ閉じる
+    $('#modal_fee').dialog("close");
+    alert("給油データの更新が完了しました。");
+    $("#search_form").submit();
+    break;
+  case 3:  //削除成功
+    //メッセージダイアログ閉じる
+    $('#modal_fee').dialog("close");
+    alert("給油データの削除が完了しました。");
+    $("#search_form").submit();
+    break;
+  case 8:  //重複エラー
+    alert("給油時刻が重複している為、更新に失敗しました。");
+    break;
+  case 9:  //更新失敗
+    alert("給油データの更新に失敗しました。");
+    break;
+}

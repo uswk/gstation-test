@@ -1,0 +1,389 @@
+<% content_for :scripts do %>
+  <script src="https://<%= @map_zenrin_url %>/auth/jsapi/loader.htm"></script>
+  <script type="text/javascript" charset="utf-8">
+
+  var marker = new Array();
+  var centerMarker;
+
+  var map_zenrin;
+  var geopt;
+  var geom = new Array();
+  var geom_popup;
+  var zenrin_content = new Array();
+  var arrIcon = new Array();
+  
+  var geopt_center;
+  var iconOffset_center;
+  var geom_center;
+  
+  //ロード時
+  window.onload = function(){
+    //キーワード
+    if(parent.document.getElementById("zenrin_address").value.length>0){
+      document.getElementById("search_zenrin_address").value = parent.document.getElementById("zenrin_address").value;
+    }else{
+      document.getElementById("search_zenrin_address").value = "<%= @def_address %>";
+    }
+    document.getElementById("search_zenrin_keyword").value = parent.document.getElementById("zenrin_keyword").value;
+    if(parent.document.getElementById("zenrin_radius_distance").value.length>0){
+      document.getElementById("radius_distance").value = parent.document.getElementById("zenrin_radius_distance").value;
+    }
+    if(parent.document.getElementById("rb_keyword").value==2){
+      document.getElementById("keyword2").checked = true;
+    }else if(parent.document.getElementById("rb_keyword").value==3){
+      document.getElementById("keyword3").checked = true;
+    }else{
+      document.getElementById("keyword1").checked = true;
+    }
+    document.getElementById("keyword1_label").innerText = "ビル名";
+    document.getElementById("radius_distance_span").style.display = "";
+    zenrin_map_load();
+  };
+
+  $(window).on("beforeunload",function(e){
+    //ログイン状態を取得する
+    var obj = ZisAuth.getStatus();
+    //ログイン状態を確認する
+    if( obj.status == true ){
+      //ログアウトする
+      ZisAuth.logout();
+    }
+  });
+
+  //ゼンリン住宅地図ロード（パラメータ　1：画面ロード時、9：ログインのみ）
+  function zenrin_map_load(){
+    // 地図オブジェクト
+    
+    // failedイベントリスナー設定
+    // 認証クラスでエラーが発生した場合にfailedが発行される
+    ZisAuth.addEventListener("failed", function(e){
+      if(e.status.code=="10120004"){
+        alert("2重起動エラーが発生しました。しばらく待ってから起動し直してください。")
+      }else{
+        alert("エラーが発生しました。("+ e.status.code + ")");
+      }
+    });
+    
+    // readyイベントリスナー設定
+    // 認証クラスで地図が利用可能な場合にreadyが発行される
+    ZisAuth.addEventListener("ready", function(e) {
+
+      //設定を収集
+      var zenrin_lon = "<%= @def_longitude %>";
+      var zenrin_lat = "<%= @def_latitude %>";
+      
+      //ズーム設定
+      var zoom = 18;  //デフォルト設定
+      if(parent.document.getElementById("zenrin_zoom").value.length>0){
+        zoom = parent.document.getElementById("zenrin_zoom").value;
+      }
+
+     // マップエレメント要素を取得する
+      var mapElement = document.getElementById("mapContainer");
+     // MapOptionsをデフォルト値から変更する場合各パラメータに値を設定
+      var mapOptions = ZisAuth.getMapOption();
+      mapOptions.center = new ZDC.LatLng(zenrin_lat, zenrin_lon);
+      mapOptions.zoom = zoom
+      // 地図を生成
+      map_zenrin = new ZDC.Map(
+        mapElement,
+        mapOptions,
+        function() {
+          // Success callback
+          // コントロールを追加する
+          // コンパスの表示
+          map_zenrin.addControl(new ZDC.Compass('top-right'));
+          // ズームボタンの表示
+          map_zenrin.addControl(new ZDC.ZoomButton('top-left'));
+          // スケールバーの表示
+          map_zenrin.addControl(new ZDC.ScaleBar('bottom-left'));
+          // 中心点の設置
+          geopt_center =new ZDC.CenterMarker();
+          // MarkerをMapに追加
+          map_zenrin.addControl(geopt_center);
+          
+          map_zenrin.addEventListener('loaded',uw1_changed);
+          map_zenrin.addEventListener('scrollend',uw1_changed);
+          map_zenrin.addEventListener('zoom_changed',uw1_changed);
+        },
+        function() {
+          // Failure callback
+        }
+      );
+      
+    });
+    
+    // loadイベントリスナー設定
+    // 認証クラスでログイン可能状態になった場合にloadが発行される
+    ZisAuth.addEventListener("load", function(e) {
+      const obj = {
+          uid: "<%= @map_zenrin_uid %>"
+          ,pwd: "<%= @map_zenrin_pwd %>"
+          ,sid: "<%= @map_zenrin_cid %>"
+          ,device_flag: 1
+      }
+      ZisAuth.login(obj);
+    });
+    
+  }
+
+  function uw1_changed() {
+    //マーカー初期化
+    for(var i = 0; i < geom.length; i++){
+      map_zenrin.removeWidget(geom[i]);
+    }
+    if(geom_popup){
+      map_zenrin.removeWidget(geom_popup);
+      geom_popup = "";
+    }
+    geom = new Array();
+
+    if(map_zenrin.getZoom()>=16){
+      $("#span_map_zenrin_zoom_size").html(Math.trunc(map_zenrin.getZoom()));
+      var adjust_size = 0.0013888;
+      switch(String(map_zenrin.getZoom())){
+        case "16":
+          adjust_size = 0.0069444;
+          break;
+        case "17":
+          adjust_size = 0.0041666;
+          break;
+        case "18":
+          adjust_size = 0.0027777;
+          break;
+        case "19":
+          adjust_size = 0.0020833;
+          break;
+        case "20":
+          adjust_size = 0.0016666;
+          break;
+      }
+      
+      var latlng = map_zenrin.getCenter();
+      document.getElementById("northeast_lat_").value = latlng.lat+adjust_size;
+      document.getElementById("northeast_lng_").value = latlng.lng+adjust_size;
+      document.getElementById("southwest_lat_").value = latlng.lat-adjust_size;
+      document.getElementById("southwest_lng_").value = latlng.lng-adjust_size;
+      
+      parent.document.getElementById("zenrin_latitude").value = latlng.lat;
+      parent.document.getElementById("zenrin_longitude").value = latlng.lng;
+        
+      //再読み込み
+      $("#marker_form").submit();
+    }else{
+      $("#span_map_zenrin_zoom_size").html(Math.trunc(map_zenrin.getZoom()) + "<span style='color:red;'>&nbsp;【ステーション非表示】※ズームレベル16以上で表示されます</span>");
+    }
+  }
+
+  //吹き出しの表示
+  function openPopup(marker_seq_id) {
+    geom[marker_seq_id].addEventListener('click', function(result) {
+      //吹き出し初期化
+      if(geom_popup){
+        map_zenrin.removeWidget(geom_popup);
+        geom_popup = "";
+      }
+      //吹き出し作成
+      map_zenrin.addWidget(
+        geom_popup = new ZDC.Popup(
+          geom[marker_seq_id].getLatLng(), 
+          {
+            htmlSource: zenrin_content[marker_seq_id], 
+            offset: new ZDC.Point(0, 0)
+          }
+        )
+      );
+    });
+  }
+  
+  //ゼンリン住所検索
+  function ZenrincodeAddress(){
+
+    var obj;
+    var url;
+
+    if(document.getElementById("search_zenrin_keyword").value!=""){
+      //キーワード検索
+      var latlng = map_zenrin.getCenter();
+      if(document.getElementById("keyword1").checked){
+        obj = ZisAuth.getApiOption("0002", "0020");
+
+        url = "https://<%= @map_zenrin_tel %>/api/service/building_name"
+            + "?zis_zips_authkey=" + encodeURIComponent(obj.zis_zips_authkey)
+            + "&zis_authtype=" + encodeURIComponent(obj.zis_authtype)
+            + "&zis_aid=" + encodeURIComponent(obj.zis_aid)
+            + "&zis_lmtinf=" + encodeURIComponent(obj.zis_lmtinf)
+            + "&word=" + encodeURIComponent(document.getElementById("search_zenrin_keyword").value)
+            + "&limit=" + encodeURIComponent('0,1000')
+            + "&datum=" + "JGD"
+            + "&proximity=" + encodeURIComponent(latlng.lng + "," + latlng.lat + "," + eval(document.getElementById("radius_distance").value))
+            + "&building_type=3"
+            + "&sort=" + "distance";
+      }else{
+        obj = ZisAuth.getApiOption("0002", "0005");
+        url = "https://<%= @map_zenrin_tel %>/api/zips/general/poi"
+            + "?zis_zips_authkey=" + encodeURIComponent(obj.zis_zips_authkey)
+            + "&zis_authtype=" + encodeURIComponent(obj.zis_authtype)
+            + "&zis_aid=" + encodeURIComponent(obj.zis_aid)
+            + "&zis_lmtinf=" + encodeURIComponent(obj.zis_lmtinf)
+            + "&word=" + encodeURIComponent(document.getElementById("search_zenrin_keyword").value)
+            + "&genre_pattern=" + "101"
+            + "&limit=" + encodeURIComponent('0,1000')
+            + "&datum=" + "JGD"
+            + "&proximity=" + encodeURIComponent(latlng.lng + "," + latlng.lat + "," + eval(document.getElementById("radius_distance").value))
+            + "&sort=" + "distance";
+      }
+      
+      dispLoading("処理中...");
+      
+      fetch(url)
+        .then((response) => {
+          return response.json();
+        })
+        .then((json) => {
+          if (json.status=="OK"){
+            removeLoading();
+            zenrin_keyword_search(json);
+          }else{
+            removeLoading();
+            alert("検索に失敗しました。")
+          }
+        });
+    }else{
+      obj = ZisAuth.getApiOption("0002", "0001");
+      //住所検索
+      url = "https://<%= @map_zenrin_tel %>/api/zips/general/address"
+          + "?zis_zips_authkey=" + encodeURIComponent(obj.zis_zips_authkey)
+          + "&zis_authtype=" + encodeURIComponent(obj.zis_authtype)
+          + "&zis_aid=" + encodeURIComponent(obj.zis_aid)
+          + "&zis_lmtinf=" + encodeURIComponent(obj.zis_lmtinf)
+          + "&address_level=" + "TBN"
+          + "&word=" + encodeURIComponent(document.getElementById("search_zenrin_address").value)
+          + "&limit=" + encodeURIComponent('0,1')
+          + "&datum=" + "JGD"
+          + "&sort=" + "address_level";
+          
+      dispLoading("処理中...");
+      
+      fetch(url)
+        .then((response) => {
+          return response.json();
+        })
+        .then((json) => {
+          if (json.status=="OK"){
+            removeLoading();
+            map_zenrin.setCenter(new ZDC.LatLng(Number(json.result.item[0].position[1]), Number(json.result.item[0].position[0])));
+            alert("検索条件の位置に移動しました。");
+          }else{
+            removeLoading();
+            alert("検索に失敗しました。")
+          }
+        });
+    }
+  }
+  
+  //ゼンリンキーワード検索
+  function zenrin_keyword_search(r){
+   var result = r.result;
+
+    var iCount = result.info.hit;
+    var jCount=0;
+
+    if(iCount>0){
+      $('#modal_keyword_detail').dialog({
+        title: "キーワード検索一覧　",
+        modal: true,
+        show : "fade",
+        hide : "fade",
+        width: "<%= @def_width %>",
+        height: "<%= @def_height %>",
+        open:function(event, ui){ 
+          $(".ui-dialog-titlebar-close").show();
+        }
+      });
+      $("div#overflow").remove();
+      var strHtml = "<div id='overflow' style='overflow: scroll; height:50vh;'>";
+      strHtml += "<table>";
+      strHtml += "<thead>";
+      strHtml += "<tr>";
+      strHtml += "<th>&nbsp;</th>";
+      strHtml += "<th>名称</th>";
+      strHtml += "<th>郵便番号</th>";
+      strHtml += "<th>住所</th>";
+      strHtml += "<th>建物名称</th>";
+      strHtml += "</tr>";
+      strHtml += "</thead>";
+      
+      while(jCount<iCount){
+        strHtml += "<tr>";
+        strHtml += "<td><input type='button' value='選択' class='btn btn-mini' onclick=zenrin_search_move('" + result.item[jCount].position[1] + "','" + result.item[jCount].position[0] + "')></td>";
+        strHtml += "<td>" + result.item[jCount].name + "</td>";
+        strHtml += "<td>" + result.item[jCount].post_code + "</td>";
+        strHtml += "<td>" + result.item[jCount].address + "</td>";
+        strHtml += "<td>" + result.item[jCount].building_name + "</td>";
+        strHtml += "</tr>";
+        jCount++;
+      }
+      strHtml += "</table>";
+      strHtml += "</div>";
+      $("#tag_sub").after(strHtml);
+    }else{
+      alert("条件に該当しませんでした。");
+    }
+  }
+  
+  //ゼンリンキーワード検索後移動
+  function zenrin_search_move(posx, posy){
+    map_zenrin.setCenter(new ZDC.LatLng(Number(posx), Number(posy)));
+    $('#modal_keyword_detail').dialog("close");
+  }
+  
+  // Loading イメージ表示関数
+  function dispLoading(msg){
+    // 引数なし（メッセージなし）を許容
+    if( msg == undefined ){
+      msg = "";
+    }
+    // 画面表示メッセージ
+    var dispMsg = "<div style='display: table-cell; text-align: center; vertical-align: middle; padding-top: 140px; background: url(\"images/gif-load.gif\") center center no-repeat;'>" + msg + "</div>";
+    // ローディング画像が表示されていない場合のみ出力
+    if($("#loading").length == 0){
+      $("body").append("<div id='loading' style='display: table; width: 100%; height: 100%; position: fixed; top: 0; left: 0; background-color: #fff; opacity: 0.8;'>" + dispMsg + "</div>");
+    }
+  }
+  // Loading イメージ削除関数
+  function removeLoading(){
+    $("#loading").remove();
+  }
+  
+  //画面再表示
+  function map_reload(){
+    if (confirm("地図を再表示しますが、よろしいですか？")){
+      window.location.reload();
+    }
+  }
+  
+  //地図を閉じる
+  function map_close(){
+    //ログイン状態を取得する
+    var obj = ZisAuth.getStatus();
+    //ログイン状態を確認する
+    if( obj.status == true ){
+      parent.document.getElementById("zenrin_zoom").value = map_zenrin.getZoom();
+      parent.document.getElementById("zenrin_address").value = document.getElementById("search_zenrin_address").value;
+      parent.document.getElementById("zenrin_keyword").value = document.getElementById("search_zenrin_keyword").value;
+      parent.document.getElementById("zenrin_radius_distance").value = document.getElementById("radius_distance").value;
+      if(document.getElementById("keyword2").checked){
+        parent.document.getElementById("rb_keyword").value = 2;
+      }else if(document.getElementById("keyword3").checked){
+        parent.document.getElementById("rb_keyword").value = 3;
+      }else{
+        parent.document.getElementById("rb_keyword").value = 1;
+      }
+      //ログアウトする
+      ZisAuth.logout();
+    }
+    window.parent.jQuery('#modal_zenrin_map_common').dialog('close');
+  }
+  </script>
+<% end %>

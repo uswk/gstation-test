@@ -1,0 +1,40 @@
+<% content_for :body_attributes do %>
+  data-turbo="false"
+<% end %>
+
+<h1>収集区別地図表示</h1>
+
+<div id="layer"></div>
+
+<div id="cover">
+  <table>
+    <thead>
+      <%= form_with(url:{controller: "output_maps", action: "output"}, html: {name: "input_form", target:"preview"}) do %>
+        <tr>
+          <th>収集区</th>
+          <td><%= select 'search_route', 'query', @route_codes, { :include_blank => true, :selected => params[:search_route].nil? ? "" : params[:search_route][:query]} %></td>
+        </tr>
+        <tr>
+          <td colspan=2 align=center>
+            <%= submit_tag "地図表示", :onclick=>"return open_preview();", :class => 'btn btn-light', id: 'input_form_submit' %>
+          </td>
+        </tr>
+      <% end %>
+    </thead>
+  </table>
+</div>
+<% content_for :scripts do %>
+  <script type="text/javascript" charset="utf-8">
+    function open_preview() {
+      if(document.getElementById("search_route_query").value==""){
+        alert("収集区を選択してください。");
+        return false;
+      }
+      window.open("about:blank","preview","width=700px,height=1100px,scrollbars=yes,resizable=yes");
+      document.input_form.target = "preview";
+      document.input_form.method = "post";
+      document.input_form.action = "output_maps";
+      document.getElementById("input_form_submit").click();
+  }
+  </script>
+<% end %>

@@ -1,0 +1,31 @@
+switch(<%= @ajaxflg %>){
+  case -1:
+    alert("登録処理に失敗しました。再度やり直してください。");
+    break;
+  case -2:
+    alert("既に同じ緯度経度でステーションが登録されています。");
+    break;
+  case -5:
+    alert("管理者が存在しません。再度やり直してください。");
+    break;
+  case 2:
+    //ステーション登録
+    alert("スポット分のステーション登録が完了しました。");
+    location.reload();
+    //$('#modal_spot').dialog( "close" );
+    //初期化
+    document.getElementById("latitude_new_").value = null;
+    document.getElementById("longitude_new_").value = null;
+    break;
+  case 5:
+    //管理者情報取得
+    document.getElementById("div_admin_name").innerHTML = "<%= @cust_name %>";
+    document.getElementById("div_admin_type").innerHTML = "<%= @admin_type %>";
+    document.getElementById("chg_flg_new_").value = 1;
+    break;
+  case 6:
+    //ステーション番号取得
+    document.getElementById("cust_name_new_").value = "<%= @cust_name_chg %>";
+    document.getElementById("chg_flg_new_").value = 1;
+    break;
+}

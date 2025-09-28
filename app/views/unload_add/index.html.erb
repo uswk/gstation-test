@@ -1,0 +1,297 @@
+<% content_for :js do %>
+  <%= javascript_include_tag 'geocoder' %>
+  <%= javascript_include_tag 'm_route_points' %>
+<% end %>
+
+<h1>荷下先 新規追加・編集画面</h1>
+
+<div id="layer"></div>
+
+<br>
+<div>
+キーワード ： <input id="address" type="textbox" size=50 value="<%= @def_address %>">
+<input type="image" src="images/search_button.png" alt="検索" align="top" onclick="codeAddress()">
+</div>
+<br>ズームレベル：<span id=span_map_zoom_size></span><span id=span_station_display style="display:none; color:red;">&nbsp;【ステーション非表示】※ズームレベル16以上で表示されます</span><br>
+<div class="map_container">
+  <div id="map_canvas" style="width:100%; height:500px"></div>
+</div>
+<span>荷下先 追加方法：地図上の追加したい位置で右クリックすると登録画面が表示されます。</span>
+<br><br><%= link_to '戻る', unloads_path(:hold_params=>1,:page=>params[:search_page].to_s,:search_custcode=>params[:search_custcode].to_s,:search_custname=>params[:search_custname].to_s,:search_custaddr=>params[:search_custaddr].to_s,:search_custpage=>params[:search_custpage].to_s,:search_delete=>params[:search_delete].to_s), :class => 'btn btn-light', :style=>'text-decoration:none;' %>
+<input type=hidden id=routecode name=routecode>
+<div id="modal" style="display:none;">
+  <%= form_with(url: {controller: 'unload_add', action: 'ajax'}, local: false, id: 'modal_form', html: {name: 'modal_form'}) do %>
+    <br>
+    <table>
+      <thead>
+        <tr>
+          <th colspan=2>荷下先名</th>
+          <td colspan=3>
+            <%= text_field 'cust_name_new', '', :size=>30, :maxlength=>50 %>
+          </td>
+        </tr>
+        <tr>
+          <th colspan=2>住所<br>(ｱﾊﾟｰﾄ・ﾏﾝｼｮﾝ名)</th>
+          <td colspan=3>
+            <%= text_field 'address_new', '', :size=>60, :maxlength=>100 %><p></p>
+            <%= text_field 'addr_2_new', '', :size=>60, :maxlength=>100 %>
+          </td>
+        </tr>
+        <tr>
+          <th colspan=2>備考</th>
+          <td colspan=3><%= text_area 'memo_new', '', :rows=>2, :maxlength=>100 %></td>
+        </tr>
+        <%= hidden_field 'latitude_new', '' %>
+        <%= hidden_field 'longitude_new', '' %>
+        <%= hidden_field 'chg_flg_new', '', :value => 1 %>
+      </thead>
+    </table>
+    <br>
+    <table>
+      <thead>
+        <tr>
+          <th width=60%>廃棄物</th>
+          <th width=20%>単位</th>
+          <th width=20%></th>
+        </tr>
+      </thead>
+    </table>
+    <div id="sortable-div">
+      <span id=indust_tag_sub></span>
+      <input type=hidden id=indust_cnt_no name=cnt_no value=0>
+    </div>
+    <br>
+    新規レコード
+    <div id=tree_no_add>
+      <table>
+        <tr>
+          <td width=60%><%= select 'indust_kbn_new', '', @indust_kbns, { :include_blank => true} %></td>
+          <td width=20%><%= select 'unit_kbn_new', '', @unit_kbns, { :include_blank => true} %></td>
+          <td width=20% align=center><input type=button value="行追加" onclick=funload_indust_add("<%= ERB::Util.url_encode(@indust_kbns) %>","<%= ERB::Util.url_encode(@unit_kbns) %>"); class='btn btn-mini'></td>
+        </tr>
+      </table>
+    </div>
+    <br>
+    <center><%= submit_tag "登録", :onclick=>"return getValidityChk();", :class => 'btn btn-primary' %></center>
+    <br>
+  <% end %>
+</div>
+<%= form_with url: {controller: "unload_add", action: "ajax"}, local: false, id: "marker_form", html: {name: "marker_form", style: "display:none"} do |f| %>
+  <%= hidden_field 'marker_flg', '', :value => 1 %>
+  <%= hidden_field 'routecode_marker', '' %>
+  <%= hidden_field 'northeast_lat', '' %>
+  <%= hidden_field 'southwest_lat', '' %>
+  <%= hidden_field 'northeast_lng', '' %>
+  <%= hidden_field 'southwest_lng', '' %>
+  <%= f.submit %>
+<% end %>
+<% content_for :scripts do %>
+  <script src="//maps.googleapis.com/maps/api/js?language=ja&key=<%= @map_key %>"></script>
+  <script src="//google-maps-utility-library-v3.googlecode.com/svn/tags/markerclustererplus/2.0.14/src/markerclusterer_packed.js" type="text/javascript"></script>
+  <script type="text/javascript" charset="utf-8">
+    var marker = new Array();
+    var treeMarker = new Array();
+    var arrpoly = new Array();
+    var poly_color;
+    var colorCount=0;
+    var routeCodeHkn="";
+    var myLatlng = new google.maps.LatLng("<%= @def_lat %>","<%= @def_lng %>");
+    var mapOptions = {
+      auto_zoom: true,
+      zoom: <%= @def_zoom %>,
+      auto_adjust: false,
+      center: myLatlng,
+      gestureHandling: "greedy",
+      mapTypeId: google.maps.MapTypeId.ROADMAP
+    }
+    var map = new google.maps.Map(document.getElementById("map_canvas"), mapOptions);
+
+    //右クリック時
+    google.maps.event.addListener(map, 'rightclick', function(object) {
+      //廃棄物情報クリア
+      for(var i = 1; i <= eval(document.getElementById("indust_cnt_no").value); i++){
+        if(document.getElementById("tree_no_"+i)){
+          froute_rundate_dlt(i);
+        }
+      }
+      document.getElementById("indust_cnt_no").value = 0;
+      
+      getAddress(object.latLng);
+      document.getElementById("addr_2_new_").value = "";
+      document.getElementById("latitude_new_").value = object.latLng.lat();
+      document.getElementById("longitude_new_").value = object.latLng.lng();
+      document.getElementById("cust_name_new_").value = "";
+      document.getElementById("memo_new_").value = "";
+      $('#modal').dialog({
+        title: "荷下先登録　",
+        modal: true,
+        show : "fade",
+        hide : "fade",
+        width: 600,
+        height: "auto",
+      });
+    });
+
+    //地図移動時
+    google.maps.event.addListener(map, 'idle', function(object) {
+      f_marker_dsp();
+    });
+
+    function getAddress(latlng) {
+
+      // ジオコーダのコンストラクタ
+      geocoder = new google.maps.Geocoder();
+      var address = "";
+      
+      // geocodeリクエストを実行。
+      // 第１引数はGeocoderRequest。緯度経度⇒住所の変換時はlatLngプロパティを入れればOK。
+      geocoder.geocode({
+        latLng: latlng
+      }, function(results, status) {
+        if (status == google.maps.GeocoderStatus.OK) {
+          // results.length > 1 で返ってくる場合もありますが・・・。
+          if (results[0].geometry) {
+
+            // 住所を取得(日本の場合だけ「日本, 」を削除)
+            address = results[0].formatted_address.replace(/^日本、/, '');
+            document.getElementById("address_new_").value = address;
+          }
+        } else {
+          document.getElementById("address_new_").value = "";
+          alert("エラーが発生しました。");
+        }
+      });
+    }
+
+   function getValidityChk() {
+     var iCount = 0;
+     var arrIndust = new Array();
+     
+     //妥当性検査チェック
+     if(document.getElementById('cust_name_new_').value.length<=0){
+       alert("荷下先名は入力必須です。");
+       return false;
+     }
+     if(document.getElementById('address_new_').value.length<=0){
+       alert("住所は入力必須です。");
+       return false;
+     }
+     if(document.getElementById('cust_name_new_').value.indexOf("'")>=0){
+        alert("荷下先名に半角クォーテーションを使用することはできません。");
+        return false;
+     }
+     if(document.getElementById('address_new_').value.indexOf("'")>=0){
+       alert("住所に半角クォーテーションを使用することはできません。");
+       return false;
+     }
+     if(document.getElementById('addr_2_new_').value.indexOf("'")>=0){
+       alert("アパート・マンション・ビル名に半角クォーテーションを使用することはできません。");
+       return false;
+     }
+     if(document.getElementById('memo_new_').value.indexOf("'")>=0){
+       alert("備考に半角クォーテーションを使用することはできません。");
+       return false;
+     }
+     console.log(document.getElementById("indust_cnt_no").value)
+     for(var i = 1; i <= eval(document.getElementById("indust_cnt_no").value); i++){
+       if(document.getElementById("tree_no_"+i)){
+         arrIndust[iCount] = $("#tree_no_"+i).find("#indust_kbn_").val();
+         iCount += 1;
+       }
+     }
+     if(iCount==0){
+       alert("廃棄物は選択必須です。");
+       return false;
+     }
+     //重複チェック
+     for(var i = 0; i < eval(arrIndust.length); i++){
+       for(var j = 0; j < eval(arrIndust.length); j++){
+         if(i!=j && arrIndust[i]==arrIndust[j]){
+           alert("廃棄物が重複しています。");
+           return false;
+         }
+       }
+     }
+     if(window.confirm('荷下先を登録しますがよろしいですか？')){
+       $(document).on("submit", ".modal_form", function(){
+         $(".modal_form").off();
+         $("#modal_form").submit();
+       });
+     }else{
+       return false;
+     }
+   }
+
+  //地図再表示
+  function JmapDisplayBlock(){
+    document.getElementById("map_canvas").style.display = "block";
+    //マーカー再表示
+    f_marker_dsp();
+  }
+    
+  //廃棄物追加
+  function funload_indust_add(indust_kbns, unit_kbns){
+    var indust_kbn = document.getElementById("indust_kbn_new_").value;
+    var unit_kbn = document.getElementById("unit_kbn_new_").value;
+    var cnt_no = eval(document.getElementById("indust_cnt_no").value) + 1;
+    
+    //エラーチェック
+    if(!indust_kbn){
+      alert("廃棄物を選択してください。");
+      return false;
+    }
+    
+    //タグ追加
+    $("#indust_tag_sub").before(fhtml_unload_indust(cnt_no, indust_kbn, indust_kbns, unit_kbn, unit_kbns));
+    document.getElementById("indust_kbn_new_").value = "";
+    document.getElementById("unit_kbn_new_").value = "";
+    document.getElementById("indust_cnt_no").value = cnt_no;
+  }
+  
+  function fhtml_unload_indust(cnt_no, indust_kbn, indust_kbns, unit_kbn, unit_kbns){
+    var ary_indust_kbn = froute_charchange(decodeURIComponent(indust_kbns));
+    var ary_unit_kbn = froute_charchange(decodeURIComponent(unit_kbns));
+    var ahtml = "";
+    var selecttype = "";
+
+    ahtml += "<div id=tree_no_" + cnt_no + ">";
+    ahtml += "<table>";
+    ahtml += "<tr>";
+    ahtml += "<td width=60%>";
+    ahtml += "<select id=indust_kbn_ name=indust_kbn[]>";
+    for(var i = 0; i < ary_indust_kbn.split(",").length; i++){
+      if (i % 2 != 0){
+        if(ary_indust_kbn.split(",")[i]==indust_kbn){
+          selecttype = " selected='selected'";
+        }else{
+          selecttype = "";
+        }
+        ahtml += "<option value=" + ary_indust_kbn.split(",")[i] + selecttype + ">" + ary_indust_kbn.split(",")[i-1] + "</option>";
+      }
+    }
+    ahtml += "</select>";
+    ahtml += "</td>";
+    ahtml += "<td width=20%>";
+    ahtml += "<select id=unit_kbn_ name=unit_kbn[]>";
+    ahtml += "<option></option>";
+    for(var i = 0; i < ary_unit_kbn.split(",").length; i++){
+      if (i % 2 != 0){
+        if(ary_unit_kbn.split(",")[i]==unit_kbn){
+          selecttype = " selected='selected'";
+        }else{
+          selecttype = "";
+        }
+        ahtml += "<option value=" + ary_unit_kbn.split(",")[i] + selecttype + ">" + ary_unit_kbn.split(",")[i-1] + "</option>";
+      }
+    }
+    ahtml += "</select>";
+    ahtml += "</td>";
+    ahtml += "<td width=20% align=center><input type=button value='削除' onClick=fcustom_route_dlt(" + cnt_no + "); class='btn btn-mini btn-danger'></td>";
+    ahtml += "</tr>";
+    ahtml += "</table>";
+    ahtml += "</div>";
+    
+    return ahtml;
+  }
+  </script>
+<% end %>

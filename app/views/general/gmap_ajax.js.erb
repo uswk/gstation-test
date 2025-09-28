@@ -1,0 +1,53 @@
+    var cust_code;
+    var cust_name;
+    var finish_timing;
+    var info;
+    var seq_id = 0;
+    var contentString;
+    var icon;
+    var infowindow = new Array();
+
+<%
+  if not @m_customs.nil?
+    @m_customs.each do |custom|
+%>
+      cust_code = "<%= custom.cust_code %>";
+      cust_name = "<%= custom.cust_name %>";
+      latitude = "<%= custom.latitude %>";
+      longitude = "<%= custom.longitude %>";
+      finish_timing = "<%= custom.finish_timing %>";
+      info = "<%= custom.info %>";
+
+      myLatlng = new google.maps.LatLng(latitude,longitude);
+
+      contentString = "<div style='width:450px; height:200px;'><h3 class=headding01>" + cust_name + "</h3>" + decodeURIComponent(info) + "</div>";
+      if(!finish_timing){
+        icon = "images/marker_icon.png";
+      }else{
+        icon = "images/marker_icon2.png";
+      }
+
+      infowindow[seq_id] = new google.maps.InfoWindow({
+        content: contentString,
+        disableAutoPan: true
+      });
+      marker[seq_id] = new google.maps.Marker({
+        position: myLatlng,
+        icon: icon,
+        map: map,
+        title: ""+seq_id
+      });
+      google.maps.event.addListener(marker[seq_id], 'click', function() {
+        //情報ウィンドウ閉じる
+        for(var i = 0; i < seq_id; i++){
+          infowindow[i].close();
+        }
+        infowindow[this.getTitle()].open(map,marker[this.getTitle()]);
+      });
+
+      seq_id += 1;
+<%
+    end
+  end
+%>
+$('#layer').hide();

@@ -1,0 +1,10 @@
+<% content_for :js do %>
+  <%= javascript_include_tag "m_route_points" %>
+<% end %>
+
+<h1>収集区基本情報登録画面</h1>
+<% if @edit_type=='copy' %>
+  <font color=red><%= @m_route_moto.route_name %>（<%= @routecode %>）のエリア情報、ステーション情報をコピーします。</font>
+<% end %>
+
+<%= render 'form' %>

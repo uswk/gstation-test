@@ -1,0 +1,113 @@
+<h1>管理者変更申請詳細画面</h1>
+<table>
+  <thead>
+    <tr><th colspan=2>変更後</th></tr>
+    <tr>
+      <th width=15%>管理者ｺｰﾄﾞ</th>
+      <td width=70%><%= @t_change_shinsei.cust_code %></td>
+    </tr>
+    <tr>
+      <th width=15%>管理者名</th>
+      <td width=70% <%= @t_change_shinsei.cust_name.to_s!=@m_custom.cust_name.to_s ? "bgcolor=pink" : "" %>><%= @t_change_shinsei.cust_name %></td>
+    </tr>
+    <tr>
+      <th>種別</th>
+      <td <%= @t_change_shinsei.admin_type.to_s!=@m_custom.admin_type.to_s ? "bgcolor=pink" : "" %>><%= @t_change_shinsei.admin_type_name %></td>
+    </tr>
+    <tr>
+      <th>地区</th>
+      <td <%= @t_change_shinsei.district_code.to_s!=@m_custom.district_code.to_s ? "bgcolor=pink" : "" %>><%= @t_change_shinsei.district %></td>
+    </tr>
+    <tr>
+      <th>地区名</th>
+      <td <%= @t_change_shinsei.district_name.to_s!=@m_custom.district_name.to_s ? "bgcolor=pink" : "" %>><%= @t_change_shinsei.district_name %></td>
+    </tr>
+    <tr>
+      <th>並び順</th>
+      <td <%= @t_change_shinsei.seq.to_s!=@m_custom.seq.to_s ? "bgcolor=pink" : "" %>><%= @t_change_shinsei.seq %></td>
+    </tr>
+    <tr>
+      <th>住所</th>
+      <td <%= @t_change_shinsei.addr_1.to_s!=@m_custom.addr_1.to_s ? "bgcolor=pink" : "" %>><%= @t_change_shinsei.addr_1 %></td>
+    </tr>
+    <tr>
+      <th>ｱﾊﾟｰﾄ･ﾏﾝｼｮﾝ･ﾋﾞﾙ名</th>
+      <td <%= @t_change_shinsei.addr_2.to_s!=@m_custom.addr_2.to_s ? "bgcolor=pink" : "" %>><%= @t_change_shinsei.addr_2 %></td>
+    </tr>
+    <tr>
+      <th>Eメール</th>
+      <td <%= @t_change_shinsei.email.to_s!=@m_custom.email.to_s ? "bgcolor=pink" : "" %>><%= @t_change_shinsei.email %></td>
+    </tr>
+    <tr>
+      <th>電話番号</th>
+      <td <%= @t_change_shinsei.tel_no.to_s!=@m_custom.tel_no.to_s ? "bgcolor=pink" : "" %>><%= @t_change_shinsei.tel_no %></td>
+    </tr>
+    <tr>
+      <th>FAX番号</th>
+      <td <%= @t_change_shinsei.fax_no.to_s!=@m_custom.fax_no.to_s ? "bgcolor=pink" : "" %>><%= @t_change_shinsei.fax_no %></td>
+    </tr>
+    <tr>
+      <th>作成日</th>
+      <td><%= @t_change_shinsei.shinsei_date.strftime("%Y/%m/%d") %></td>
+    </tr>
+    <tr>
+      <th>変更予定日</th>
+      <td><%= @t_change_shinsei.kibou_date.blank? ? "" : @t_change_shinsei.kibou_date.strftime("%Y/%m/%d") %></td>
+    </tr>
+    <tr>
+      <th>ステータス</th>
+      <td><%= @t_change_shinsei.confirm_name %></td>
+    </tr>
+  </thead>
+</table>
+<br><br>
+<table>
+  <thead>
+    <tr><th colspan=2>変更前</th></tr>
+    <tr>
+      <th width=15%>管理者名</th>
+      <td width=70%><%= @m_custom.cust_name %></td>
+    </tr>
+    <tr>
+      <th>種別</th>
+      <td><%= @m_custom.admin_type_name %></td>
+    </tr>
+    <tr>
+      <th>地区</th>
+      <td><%= @m_custom.district %></td>
+    </tr>
+    <tr>
+      <th>地区名</th>
+      <td><%= @m_custom.district_name %></td>
+    </tr>
+    <tr>
+      <th>並び順</th>
+      <td><%= @m_custom.seq %></td>
+    </tr>
+    <tr>
+      <th>住所</th>
+      <td><%= @m_custom.addr_1 %></td>
+    </tr>
+    <tr>
+      <th>ｱﾊﾟｰﾄ･ﾏﾝｼｮﾝ･ﾋﾞﾙ名</th>
+      <td><%= @m_custom.addr_2 %></td>
+    </tr>
+    <tr>
+      <th>Eメール</th>
+      <td><%= @m_custom.email %></td>
+    </tr>
+    <tr>
+      <th>電話番号</th>
+      <td><%= @m_custom.tel_no %></td>
+    </tr>
+    <tr>
+      <th>FAX番号</th>
+      <td><%= @m_custom.fax_no %></td>
+    </tr>
+  </thead>
+</table>
+<br>
+<% if current_user.authority!=9 %>
+  <%= link_to '編集', edit_t_change_shinsei_admin_path(@t_change_shinsei), :class => 'btn', :style=>'text-decoration:none;' %>&nbsp;&nbsp;
+<% end %>
+<%= link_to '戻る', t_change_shinsei_admins_path, :class => 'btn', :style=>'text-decoration:none;' %>

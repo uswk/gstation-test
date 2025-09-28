@@ -1,0 +1,16 @@
+# Sample localization file for English. Add more files in this directory for other locales.
+# See https://github.com/svenfuchs/rails-i18n/tree/master/rails%2Flocale for starting points.
+
+en:
+  search_maps:
+    index:
+      title: "Address Search"
+      manager_type: "Manager Type"
+  m_route_points:
+    index:
+      title: Stations within Collection Area
+      warn_not_showing: "[stations are hidden] stations are visible at zoom level 16 and above"
+      howto_add_stations: Right-click on the map to display registration window.
+  m_routes:
+    index:
+      title: List of Collect Areas

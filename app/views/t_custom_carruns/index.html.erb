@@ -1,0 +1,103 @@
+<%= form_tag("t_custom_carruns", :method=>"get", :id=>"search_form") do %>
+  <table>
+    <thead>
+      <tr>
+        <th>ｽﾃｰｼｮﾝｺｰﾄﾞ</th>
+        <td><%= @cust_code %></td>
+      </tr>
+      <tr>
+        <th>ステーション名</th>
+        <td><%= @cust_name %></td>
+      </tr>
+      <tr>
+        <th>期間</th>
+        <td>
+          <%= text_field 'search', 'date_from', :class => 'datepicker', :size => 10, :maxlength => 10, :value => @date_from.blank? ? Date.today.years_ago(1).try(:strftime, "%Y/%m/%d") : @date_from %>
+          ～
+          <%= text_field 'search', 'date_to', :class => 'datepicker', :size => 10, :maxlength => 10, :value => @date_to.blank? ? Date.today.try(:strftime, "%Y/%m/%d") : @date_to %>
+        </td>
+      </tr>
+      <% if current_user.itaku_code.blank? %>
+        <th>委託会社</th>
+        <td colspan=3><%= select 'search', 'itaku', @itaku_codes, { :include_blank => true, :selected => @itakucode.blank? ? "" : @itakucode} %></td>
+      <% end %>
+      <tr>
+        <td align=center colspan=4><%= submit_tag "検索", :class => 'btn' %></td>
+      </tr>
+    </thead>
+  </table>
+  <%= hidden_field_tag :cust_kbn, @cust_kbn.to_s %>
+  <%= hidden_field_tag :cust_code, @cust_code.to_s %>
+<% end %>
+<br>
+
+  <%= paginate(@t_custom_carruns) %>
+  <table>
+    <thead>
+      <tr>
+        <th>出庫日時</th>
+        <th>車両</th>
+        <th>運転者</th>
+        <th>収集時刻</th>
+        <th>未回収数量</th>
+        <th>未回収理由</th>
+        <th>委託会社</th>
+        <th></th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      <% @t_custom_carruns.each do |t_custom_carrun| %>
+        <tr>
+          <td><%= t_custom_carrun.out_timing.try(:strftime, "%Y/%m/%d %H:%M:%S") %></td>
+          <td><%= t_custom_carrun.car_reg_code %></td>
+          <td><%= t_custom_carrun.driver_name %></td>
+          <td><%= t_custom_carrun.finish_timing.try(:strftime, "%H:%M:%S") %></td>
+          <td><%= t_custom_carrun.mikaishu_count %></td>
+          <td><%= t_custom_carrun.mikaishu_name %></td>
+          <td><%= t_custom_carrun.itaku_name %></td>
+          <td>
+            <% if not t_custom_carrun.memo_flg.blank? %>
+              <% @url_path = uncollect_path.to_s + "/" + t_custom_carrun.id.to_s + "?collect_flg=9&finish_timing=" + ERB::Util.url_encode(t_custom_carrun.finish_timing.try(:strftime, "%Y-%m-%d %H:%M:%S").to_s) + "&cust_kbn=" + ERB::Util.url_encode(t_custom_carrun.cust_kbn.to_s) + "&cust_code=" + ERB::Util.url_encode(t_custom_carrun.cust_code.to_s) + "&cust_name=" + ERB::Util.url_encode(t_custom_carrun.cust_name.to_s)  + "&mikaishu_name=" + ERB::Util.url_encode(t_custom_carrun.mikaishu_name.to_s) + "&mikaishu_count=" + t_custom_carrun.mikaishu_count.to_s %>
+              <input type=button value='メモ' onclick='return JCollectMemoDisplay("<%= @url_path %>");' class='btn btn-mini'>
+            <% end %>
+          </td>
+          <td><%= link_to '詳細', t_carrun_path(t_custom_carrun.id, :header_no_dsp=>1), :class => 'btn btn-mini' %></td>
+        </tr>
+      <% end %>
+    </tbody>
+  </table>
+  <br>
+  <input type="button" id="modalClose" value="閉じる" onclick="modal_close()" class='btn'>
+  
+  <div id="modal_memo" style="display:none;">
+    <span id=tag_sub_memo></span>
+  </div>
+<%= content_for :scripts do %>
+  <script type="text/javascript" charset="utf-8">
+    //メモ表示
+    function JCollectMemoDisplay(url_path){
+      var strHtml;
+      var intWidth = eval(window.innerWidth)*9/10;
+      var intHeight = eval(window.innerHeight)*9/10;
+      $("div#tag_memo").remove();
+      strHtml = "<div id='tag_memo'>";
+      strHtml = strHtml + "<iframe src=" + url_path + " height=" + (intHeight*9/10) + " width=" + (intWidth*9/10) + ">";
+      strHtml = strHtml + "</iframe>";
+      strHtml = strHtml + "</div>";
+      $("#tag_sub_memo").after(strHtml);
+      $('#modal_memo').dialog({
+        title: "メモ表示　",
+        modal: true,
+        show : "fade",
+        hide : "fade",
+        width: intWidth,
+        height: intHeight
+      });
+    }
+    //モーダルを閉じる
+    function modal_close(){
+      window.parent.jQuery('#modal_station_detail_common').dialog('close');
+    }
+  </script>
+<% end %>

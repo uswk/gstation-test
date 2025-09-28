@@ -1,0 +1,40 @@
+<h1>車両別日別走行距離一覧出力画面</h1>
+<p id="notice"><%= alert %></p>
+<div id="cover">
+  <%= form_tag("nippo_report002", method: "post", :html => {:class => 'form-horizontal'}) do %>
+    <table>
+      <thead>
+        <tr><th colspan=2>Excel出力</th></tr>
+        <tr>
+          <th>期間</th>
+            <td>
+              <%= text_field 'search', 'date_from', :class => 'datepicker', :size => 10, :maxlength => 10, :value => Date.today.try(:strftime, "%Y/%m/%d") %>
+              ～
+              <%= text_field 'search', 'date_to', :class => 'datepicker', :size => 10, :maxlength => 10, :value => Date.today.try(:strftime, "%Y/%m/%d") %>
+            </td>
+        </tr>
+        <tr>
+          <% if current_user.itaku_code.blank? %>
+            <th>委託会社</th>
+            <td colspan=3><%= select 'search', 'itaku', @itaku_codes, { :include_blank => true, :selected => @itakucode.blank? ? "" : @itakucode} %></td>
+          <% end %>
+        </tr>
+        <tr>
+          <td colspan=2 align=center><%= submit_tag 'Excelデータ出力', :onclick => 'return fexcel_send();', :class => 'btn btn-primary' %></td>
+          <%= hidden_field_tag :excel_flg, 1 %>
+        </tr>
+      </thead>
+    </table>
+  <% end %>
+</div>
+<%= content_for :scripts do %>
+  <script type="text/javascript" charset="utf-8">
+    function fexcel_send(){
+      if(window.confirm("Excel出力しますが、よろしいですか？")){
+        return true;
+      }else{
+        return false;
+      }
+    }
+  </script>
+<% end %>

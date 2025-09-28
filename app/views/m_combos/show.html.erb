@@ -1,0 +1,55 @@
+<h1>分類マスタ詳細画面</h1>
+
+<table>
+  <thead>
+    <tr>
+      <th width=30%>大分類コード</th>
+      <td width=70%><%= @m_combo.class_1 %></td>
+    </tr>
+    <tr>
+      <th>中分類コード</th>
+      <td><%= @m_combo.class_2 %></td>
+    </tr>
+    <tr>
+      <th>小分類コード</th>
+      <td><%= @m_combo.class_code %></td>
+    </tr>
+    <tr>
+      <th>名称</th>
+      <td><%= @m_combo.class_name %></td>
+    </tr>
+    <tr>
+      <th>略称</th>
+      <td><%= @m_combo.class_namea %></td>
+    </tr>
+    <tr>
+      <th>値１</th>
+      <td><%= @m_combo.value %></td>
+    </tr>
+    <tr>
+      <th>値２</th>
+      <td><%= @m_combo.value2 %></td>
+    </tr>
+    <tr>
+      <th>値３</th>
+      <td><%= @m_combo.value3 %></td>
+    </tr>
+    <tr>
+      <th>値４</th>
+      <td><%= @m_combo.value4 %></td>
+    </tr>
+    <tr>
+      <th>値５</th>
+      <td><%= @m_combo.value5 %></td>
+    </tr>
+    <tr>
+      <th>システムフラグ</th>
+      <td><%= @m_combo.system_flg %></td>
+    </tr>
+  </thead>
+</table>
+<br>
+<% if current_user.authority == 1 && @m_combo.system_flg != 1 %>
+  <%= link_to '編集', edit_m_combo_path(@m_combo), :class => 'btn', :style=>'text-decoration:none;' %>&nbsp;&nbsp;
+<% end %>
+<%= link_to '戻る', m_combos_path(:class1 => @m_combo.class_1), :class => 'btn', :style=>'text-decoration:none;' %>

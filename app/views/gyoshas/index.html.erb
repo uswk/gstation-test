@@ -1,0 +1,93 @@
+<h1>委託会社一覧画面</h1>
+
+<table>
+  <thead>
+  <%= form_tag(gyoshas_path, method: :get) do %>
+    <tr>
+      <th>委託会社名</th>
+      <td><%= text_field 'search_name', 'query', :size => 50, :value => params[:search_name].nil? ? "" : params[:search_name][:query] %></td>
+      <th>委託会社ｺｰﾄﾞ</th>
+      <td><%= text_field 'search', 'query', :size => 20, :value => params[:search].nil? ? "" : params[:search][:query]  %></td>
+    </tr>
+    <tr>
+      <th>住所</th>
+      <td><%= text_field 'search_addr', 'query', :size => 50, :value => params[:search_addr].nil? ? "" : params[:search_addr][:query] %></td>
+      <th>電話番号</th>
+      <td><%= text_field 'search_tel', 'query', :size => 20, :value => params[:search_tel].nil? ? "" : params[:search_tel][:query] %></td>
+    </tr>
+    <tr>
+      <th>削除のみ ： <%= check_box 'search_delete', 'query', {:checked => @blndelete} %></th>
+      <td colspan=3 align=center><%= submit_tag "検索", :class => 'btn btn-primary', data: {turbo: false} %></td>
+    <tr>
+    <% if @search_mode==1 %>
+      <%= hidden_field 'search_mode', '', :value => 1 %>
+    <% end %>
+  <% end %>
+  </thead>
+</table>
+<br>
+<% if @search_mode == 1 %>
+  <%= link_to '閉じる', '', :onclick => "window.close(); return false;" %>
+<% else %>
+  <% if current_user.authority!=9 %>
+    <%= link_to '追加', new_gyosha_path, :style=>'color:white; text-decoration:none;', :class => 'btn btn-primary' %>
+  <% end %>
+<% end %>
+<br><br>
+<%= paginate(@m_customs) %>
+<table>
+  <thead>
+    <tr>
+      <th>委託会社ｺｰﾄﾞ</th>
+      <th>委託会社名</th>
+      <th>住所</th>
+      <th>電話番号</th>
+      <th>FAX番号</th>
+      <th></th>
+      <% if @search_mode != 1 %>
+        <% if current_user.authority!=9 %>
+          <th></th>
+          <th></th>
+        <% end %>
+      <% end %>
+    </tr>
+  </thead>
+
+  <tbody>
+    <% @m_customs.each do |m_custom| %>
+      <tr>
+        <td <%= @bgcolor_td %>><%= m_custom.cust_code %></td>
+        <td <%= @bgcolor_td %>><%= m_custom.cust_name %></td>
+        <td <%= @bgcolor_td %>><%= (m_custom.addr_1.to_s + ' ' + m_custom.addr_2.to_s).strip %></td>
+        <td <%= @bgcolor_td %>><%= m_custom.tel_no %></td>
+        <td <%= @bgcolor_td %>><%= m_custom.fax_no %></td>
+        <% if @search_mode == 1 %>
+          <td <%= @bgcolor_td %>><%= link_to '選択', m_custom, :onclick => "selectGyosha('" + m_custom.cust_code + "','" + m_custom.cust_name + "'); return false;", :class => 'btn btn-link btn-sm' %></td>
+        <% else %>
+          <td <%= @bgcolor_td %>><%= link_to '詳細', m_custom, :href => "gyoshas/" + m_custom.id.to_s, :class => 'btn btn-light btn-sm' %></td>
+          <% if current_user.authority!=9 %>
+            <td <%= @bgcolor_td %>><%= link_to '編集', edit_gyosha_path(m_custom), :class => 'btn btn-light btn-sm' %></td>
+            <% if @blndelete == false %>
+              <td <%= @bgcolor_td %>><%= button_to '削除', gyosha_path(m_custom), method: :delete, data: { turbo_confirm: '削除しますがよろしいですか?' }, :style=>"color:white;", :class => 'btn btn-sm btn-danger' %></td>
+            <% else %>
+              <td <%= @bgcolor_td %>><%= button_to '復活', gyosha_path(m_custom), method: :delete, data: { turbo_confirm: '削除を復活しますがよろしいですか?' }, :style=>"color:white;", :class => 'btn btn-sm btn-danger' %></td>
+            <% end %>
+          <% end %>
+        <% end %>
+      </tr>
+    <% end %>
+  </tbody>
+</table>
+<% content_for :scripts do %>
+  <script type="text/javascript" charset="utf-8">
+  function selectGyosha(cust_code, cust_name){
+    if(opener.document.getElementById("m_custom_gyosha_code")){
+      opener.document.getElementById("m_custom_gyosha_code").value=cust_code;
+    }else{
+      opener.document.getElementById("gyosha_code_new_").value=cust_code;
+    }
+    opener.document.getElementById("div_gyosha_name").innerHTML=cust_name;
+    window.close();
+  }
+  </script>
+<% end %>

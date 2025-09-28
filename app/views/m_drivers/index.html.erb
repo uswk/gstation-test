@@ -1,0 +1,55 @@
+<h1>運転者一覧画面</h1>
+
+<table>
+  <thead>
+    <tr>
+      <td>
+        <%= form_tag("m_drivers", method: "get") do %>
+          運転者コード ： <%= text_field 'search', 'query', :value => params[:search].nil? ? "" : params[:search][:query]  %>
+          <%= submit_tag "検索", :class => 'btn' %><br><br>
+          削除のみ ： <%= check_box 'search', 'delete', {:checked => @blndelete} %>
+        <% end %>
+      </td>
+    </tr>
+  </thead>
+</table>
+<br>
+<% if current_user.authority!=9 %>
+  <%= link_to '追加', new_m_driver_path, :style=>"color:white; text-decoration:none;", :class => 'btn btn-primary' %>
+<% end %>
+<br><br>
+<%= paginate(@m_drivers) %>
+<table>
+  <thead>
+    <tr>
+      <th>運転者コード</th>
+      <th>運転者名</th>
+      <th>部署</th>
+      <th>委託会社</th>
+      <th></th>
+      <% if current_user.authority!=9 %>
+        <th></th>
+        <th></th>
+      <% end %>
+    </tr>
+  </thead>
+  <tbody>
+    <% @m_drivers.each do |m_driver| %>
+      <tr>
+        <td <%= @bgcolor_td %>><%= m_driver.driver_code %></td>
+        <td <%= @bgcolor_td %>><%= m_driver.driver_name %></td>
+        <td <%= @bgcolor_td %>><%= m_driver.section_name %></td>
+        <td <%= @bgcolor_td %>><%= m_driver.cust_name %></td>
+        <td <%= @bgcolor_td %>><%= link_to '詳細', m_driver, :class => 'btn btn-mini' %></td>
+        <% if current_user.authority!=9 %>
+          <td <%= @bgcolor_td %>><%= link_to '編集', edit_m_driver_path(m_driver), :class => 'btn btn-mini' %></td>
+          <% if @blndelete == false %>
+            <td <%= @bgcolor_td %>><%= link_to '削除', m_driver, method: :delete, data: { confirm: '削除しますがよろしいですか?' }, :style=>"color:white;", :class => 'btn btn-mini btn-danger' %></td>
+          <% else %>
+            <td <%= @bgcolor_td %>><%= link_to '復活', m_driver, method: :delete, data: { confirm: '削除を復活しますがよろしいですか?' }, :style=>"color:white;", :class => 'btn btn-mini btn-danger' %></td>
+          <% end %>
+        <% end %>
+      </tr>
+    <% end %>
+  </tbody>
+</table>

@@ -1,0 +1,92 @@
+<%= form_for(@user, :url => {:action => @upd_action}) do |f| %>
+  <% if @user.errors.any? %>
+    <div id="error_explanation">
+      <h2><%= pluralize(@user.errors.count, "error") %> prohibited this user from being saved:</h2>
+
+      <ul>
+      <% @user.errors.full_messages.each do |msg| %>
+        <li><%= msg %></li>
+      <% end %>
+      </ul>
+    </div>
+  <% end %>
+  <table>
+    <thead>
+      <tr>
+        <th width=30%>ユーザーID</th>
+        <% if @upd_flg != 2 %>
+          <td><%= f.text_field :user_id %></td>
+        <% else %>
+          <td><%= f.text_field :user_id, :readonly => true, :disabled => true %></td>
+        <% end %>
+      </tr>
+      <tr>
+        <th>ユーザー名</th>
+        <td><%= f.text_field :user_name, :size=>40, :maxlength=>50 %></td>
+      </tr>
+      <% if @upd_flg != 2 %>
+        <tr>
+          <th>パスワード</th>
+          <td colspan=3><%= f.password_field :password, :maxlength => 25 %></td>
+        </tr>
+        <tr>
+          <th>パスワード確認</th>
+          <td colspan=3><%= f.password_field :password_confirmation, :maxlength => 25 %></td>
+        </tr>
+      <% end %>
+      <tr>
+        <th>委託会社</th>
+        <td><%= f.select :itaku_code, @itaku_codes, { :include_blank => true} %></td>
+      </tr>
+      <tr>
+        <th>ログイン権限</th>
+        <td><%= f.check_box :login_authority %></td>
+      </tr>
+      <tr>
+        <th>権限</th>
+        <td>
+         <% @authoritys.each do |authority| %>
+           <%= f.radio_button :authority, authority.class_code, {:checked => @user.authority.to_s==authority.class_code.to_s || authority.class_code.to_s=="1" ? true : false} %><%= authority.class_name %>&nbsp;&nbsp;
+         <% end %>
+        </td>
+      </tr>
+    </thead>
+  </table>
+  <br>
+  <div class="actions">
+    <% if current_user.authority!=9 %>
+      <%= f.submit :"更新", :onclick => ('return fusers_submit();'), :class => 'btn btn-primary' %>&nbsp;&nbsp;
+    <% end %>
+    <%= link_to '戻る', users_path, :class => 'btn', :style=>'text-decoration:none;' %>
+  </div>
+<% end %>
+<% content_for :scripts do %>
+  <script type="text/javascript">
+    function fusers_submit(){
+      if (document.getElementById("user_user_id").value.length<=0) {
+        alert("ユーザーIDは入力必須です。");
+        return false;
+      }
+      if (document.getElementById("user_user_name").value.length<=0) {
+        alert("ユーザー名は入力必須です。");
+        return false;
+      }
+      <% if @upd_flg != 2 %>
+        if (document.getElementById("user_password").value.length<=0) {
+          alert("パスワードは入力必須です。");
+          return false;
+        }
+        if (document.getElementById("user_password").value!=document.getElementById("user_password_confirmation").value) {
+          alert("パスワードとパスワード確認が一致しません。");
+          return false;
+        }
+      <% end %>
+      
+      if(window.confirm('更新しますがよろしいですか？')){
+        return true;
+      }else{
+        return false;
+      }
+    }
+  </script>
+<% end %>

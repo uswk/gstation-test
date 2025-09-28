@@ -1,0 +1,196 @@
+    var id;
+    var cust_kbn;
+    var cust_code;
+    var cust_name;
+    var finish_timing;
+    var info;
+    var seq_id = 0;
+    var contentString;
+    var icon;
+    var infowindow = new Array();
+
+switch("<%= @map_type %>"){
+  case "1":
+    //マーカー初期化（念の為）
+    for(var i = 0; i < marker.length; i++){
+      marker[i].setMap(null);
+    }
+<%
+    if not @m_customs.nil?
+      @m_customs.each do |custom|
+%>
+        cust_code = "<%= custom.cust_code %>";
+        cust_name = "<%= custom.cust_name %>";
+        latitude = "<%= custom.latitude %>";
+        longitude = "<%= custom.longitude %>";
+        finish_timing = "<%= custom.finish_timing %>";
+        info = "<%= custom.info %>";
+
+        myLatlng = new google.maps.LatLng(latitude,longitude);
+
+        contentString = "<div style='width:450px; height:200px;'><h3 class=headding01>" + cust_name + "</h3>" + decodeURIComponent(info) + "</div>";
+        if(!finish_timing){
+          icon = "images/marker_icon.png";
+        }else{
+          icon = "images/marker_icon2.png";
+        }
+
+        infowindow[seq_id] = new google.maps.InfoWindow({
+          content: contentString,
+          disableAutoPan: true
+        });
+        marker[seq_id] = new google.maps.Marker({
+          position: myLatlng,
+          icon: icon,
+          map: map,
+          title: ""+seq_id
+        });
+        google.maps.event.addListener(marker[seq_id], 'click', function() {
+          //情報ウィンドウ閉じる
+          for(var i = 0; i < seq_id; i++){
+            infowindow[i].close();
+          }
+          infowindow[this.getTitle()].open(map,marker[this.getTitle()]);
+        });
+
+        seq_id += 1;
+<%
+      end
+    end
+%>
+    //中央の位置にマーカー表示
+    myLatlng = new google.maps.LatLng(map.getBounds().getCenter().lat(),map.getBounds().getCenter().lng())
+    icon = {
+      url: "images/marker_pin.png",
+      origin: new google.maps.Point(0, 0),
+      anchor: new google.maps.Point(5, 40)
+    };
+    marker[seq_id] = new google.maps.Marker({
+      position: myLatlng,
+      icon: icon,
+      map: map,
+      title: ""+seq_id
+    });
+    $('#layer').hide();
+    break;
+  case "2":
+    var arrLat = new Array();
+    var arrLng = new Array();
+
+    //マーカー初期化（念の為）
+    for(var i = 0; i < geom.length; i++){
+      map_zenrin.removeGeometry(geom[i]);
+    }
+
+    //マーカーオプション
+    geopt = new ZntMarkerOptions();
+    geopt.opacity = 1;
+    geopt.visible = true;
+    geopt.zIndex = 0;
+
+    //オフセット
+    var iconOffset;
+    iconOffset = new ZntPoint();
+    iconOffset.x = 4;
+    iconOffset.y = 4;
+    geopt.iconOffset = iconOffset;
+    
+    zenrin_content = new Array();
+    geom = new Array();
+    arrIcon = new Array();
+<%
+    if not @m_customs.nil?
+      @m_customs.each do |custom|
+%>
+        id = "<%= custom.id %>";
+        cust_kbn = "<%= custom.cust_kbn %>";
+        cust_code = "<%= custom.cust_code %>";
+        cust_name = "<%= custom.cust_name %>";
+        finish_timing = "<%= custom.finish_timing %>";
+        info = "<%= custom.info %>";
+        contentString = "<div style='width:450px; height:210px;'><h3 class=headding01>" + cust_name + "</h3>" + decodeURIComponent(info);
+        contentString = contentString  + "<input type=button value='メモ' onclick=fcustom_memo_common('" + cust_code + "','<%= root_url(only_path: false) %>'); class='btn'>";
+        contentString = contentString  + "&nbsp;&nbsp;&nbsp;<input type=button value='収集履歴' onclick=fcustom_carrun_common('" + cust_kbn + "','" + cust_code + "','<%= root_url(only_path: false) %>'); class='btn'>";
+        contentString = contentString  + "&nbsp;&nbsp;&nbsp;<input type=button value='詳細' onclick=fcustom_detail_common('" + id + "','<%= root_url(only_path: false) %>',''); class='btn'></div>";
+        zenrin_content[seq_id] = contentString;
+
+        //マーカー画像
+        if(!finish_timing){
+          arrIcon[seq_id] ="images/marker_icon.png";
+        }else{
+          arrIcon[seq_id] ="images/marker_icon2.png";
+        }
+        
+        arrLat[seq_id] = Math.round(eval("<%= custom.latitude %>")*3600000);
+        arrLng[seq_id] = Math.round(eval("<%= custom.longitude %>")*3600000);
+        
+        seq_id += 1;
+<%
+      end
+%>
+      //測地系変換後、地図表示
+      zenrin_world_japan(arrLat, arrLng, 3);
+<%
+    end
+%>
+    break;
+  case "3":
+    var arrLat = new Array();
+    var arrLng = new Array();
+
+    //マーカー初期化（念の為）
+    for(var i = 0; i < geom.length; i++){
+      map_zenrin.removeWidget(geom[i]);
+    }
+    if(geom_popup){
+      map_zenrin.removeWidget(geom_popup);
+      geom_popup = "";
+    }
+    zenrin_content = new Array();
+    geom = new Array();
+
+    arrIcon = new Array();
+    <% if not @m_customs.nil? %>
+      <% @m_customs.each do |custom| %>
+        id = "<%= custom.id %>";
+        cust_kbn = "<%= custom.cust_kbn %>";
+        cust_code = "<%= custom.cust_code %>";
+        cust_name = "<%= custom.cust_name %>";
+        finish_timing = "<%= custom.finish_timing %>";
+        info = "<%= custom.info %>";
+        contentString = "<div style='width:450px; height:210px;'><h3 class=headding01>" + cust_name + "</h3>" + decodeURIComponent(info);
+        contentString = contentString  + "<input type=button value='メモ' onclick=fcustom_memo_common('" + cust_code + "','<%= root_url(only_path: false) %>'); class='btn'>";
+        contentString = contentString  + "&nbsp;&nbsp;&nbsp;<input type=button value='収集履歴' onclick=fcustom_carrun_common('" + cust_kbn + "','" + cust_code + "','<%= root_url(only_path: false) %>'); class='btn'>";
+        contentString = contentString  + "&nbsp;&nbsp;&nbsp;<input type=button value='詳細' onclick=fcustom_detail_common('" + id + "','<%= root_url(only_path: false) %>',''); class='btn'></div>";
+        zenrin_content[seq_id] = contentString;
+
+        //マーカー画像
+        if(!finish_timing){
+          arrIcon[seq_id] ="images/marker_icon.png";
+        }else{
+          arrIcon[seq_id] ="images/marker_icon2.png";
+        }
+        
+        arrLat[seq_id] = "<%= custom.latitude %>";
+        arrLng[seq_id] = "<%= custom.longitude %>";
+
+        //地図表示
+        geom[seq_id] = new ZDC.Marker(
+          //マーカー設定
+          new ZDC.LatLng(arrLat[seq_id], arrLng[seq_id]),
+          {
+            offset: new ZDC.Point(4, 4),
+            custom: {
+              base : {
+                imgSrc: arrIcon[seq_id]
+              }
+            }
+          }
+        );
+        openPopup(seq_id);
+        map_zenrin.addWidget(geom[seq_id]);
+        seq_id += 1;
+      <% end %>
+    <% end %>
+    break;
+}

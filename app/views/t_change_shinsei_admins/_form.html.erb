@@ -1,0 +1,104 @@
+<%= form_for(@t_change_shinsei,:url => {:controller=>'t_change_shinsei_admins', :action => 'update'}, :html => { :class => 't_change_shinsei_admins', :id => 't_change_shinsei_admins' }) do |f| %>
+  <% if @t_change_shinsei.errors.any? %>
+    <div id="error_explanation">
+      <h2><%= pluralize(@t_change_shinsei.errors.count, "error") %> prohibited this t_change_shinsei from being saved:</h2>
+
+      <ul>
+      <% @t_change_shinsei.errors.full_messages.each do |msg| %>
+        <li><%= msg %></li>
+      <% end %>
+      </ul>
+    </div>
+  <% end %>
+  <table>
+    <thead>
+    <tr>
+      <th>管理者ｺｰﾄﾞ</th>
+      <td><%= @action_form=='update' ? @t_change_shinsei.cust_code : @m_custom.cust_code %></td>
+      <%= f.hidden_field :cust_code, :value=>@action_form=='update' ? @t_change_shinsei.cust_code : @m_custom.cust_code %>
+      <%= f.hidden_field :cust_kbn, :value=>@action_form=='update' ? @t_change_shinsei.cust_kbn : @m_custom.cust_kbn %>
+    </tr>
+    <tr>
+      <th>管理者名</th>
+      <td><%= f.text_field :cust_name, :value=>@action_form=='update' ? @t_change_shinsei.cust_name : @m_custom.cust_name, :size=>40, :maxlength=>50 %></td>
+    </tr>
+    <tr>
+      <th>種別</th>
+      <td><%= f.select :admin_type, @admin_types %></td>
+    </tr>
+    <tr>
+      <th>地区</th>
+      <td><%= f.select :district_code, @districts, { :include_blank => true} %></td>
+    </tr>
+    <tr>
+      <th>地区名</th>
+      <td><%= f.text_field :district_name, :size=>20, :maxlength=>50 %></td>
+    </tr>
+    <tr>
+      <th>並び順</th>
+      <td><%= f.text_field :seq, :size=>6, :maxlength=>5 %></td>
+    </tr>
+    <tr>
+      <th>住所</th>
+      <td><%= f.text_field :addr_1, :value=>@action_form=='update' ? @t_change_shinsei.addr_1 : @m_custom.addr_1, :size=>60, :maxlength=>100 %></td>
+    </tr>
+    <tr>
+      <th>ｱﾊﾟｰﾄ・ﾏﾝｼｮﾝ・ﾋﾞﾙ名</th>
+      <td><%= f.text_field :addr_2, :value=> @action_form=='update' ? @t_change_shinsei.addr_2 : @m_custom.addr_2, :size=>60, :maxlength=>100 %></td>
+    </tr>
+    <tr>
+      <th>Eメール</th>
+      <td><%= f.text_field :email, :value=>@action_form=='update' ? @t_change_shinsei.email : @m_custom.email, :size=>60, :maxlength=>100 %></td>
+    </tr>
+    <tr>
+      <th>電話番号</th>
+      <td><%= f.text_field :tel_no, :value=>@action_form=='update' ? @t_change_shinsei.tel_no : @m_custom.tel_no, :size=>20, :maxlength=>13 %></td>
+    </tr>
+    <tr>
+      <th>FAX番号</th>
+      <td><%= f.text_field :fax_no, :value=>@action_form=='update' ? @t_change_shinsei.fax_no : @m_custom.fax_no, :size=>20, :maxlength=>13 %></td>
+    </tr>
+    <tr>
+      <th>変更予定日</th>
+      <td><%= f.text_field :kibou_date, :value=>@t_change_shinsei.kibou_date.blank? ? "" : @t_change_shinsei.kibou_date.strftime("%Y/%m/%d"), :class => 'datepicker_sub', :maxlength=>10 %></td>
+    </tr>
+    <tr>
+      <th>ステータス</th>
+      <td><%= f.select :confirm_flg, @confirm_flgs %></td>
+    </tr>
+    </thead>
+  </table>
+  <br>
+  <div class="actions">
+    <% if current_user.authority!=9 %>
+      <%= f.submit :"更新", :onclick => ('return fchange_shinseis_submit();'), :class => 'btn btn-primary' %>
+    <% end %>
+    &nbsp;&nbsp;
+    <%= link_to '詳細', t_change_shinsei_admin_path(@t_change_shinsei), :class => 'btn', :style=>'text-decoration:none;' %>&nbsp;&nbsp;
+    <%= link_to '戻る', t_change_shinsei_admins_path, :class => 'btn', :style=>'text-decoration:none;' %>
+  </div>
+<% end %>
+<% content_for :scripts do %>
+  <script type="text/javascript" charset="utf-8">
+    function fchange_shinseis_submit(){
+      if (document.getElementById("t_change_shinsei_kibou_date").value.length<=0) {
+        alert("変更予定日は入力必須です。");
+        return false;
+      }else{
+        if (commonCkDate(document.getElementById("t_change_shinsei_kibou_date").value)==false){
+          alert("変更予定日の日付形式が正しくありません。（yyyy/mm/dd）");
+          return false;
+        }
+      }
+      if (isNaN(document.getElementById("t_change_shinsei_seq").value)){
+        alert("並び順はは数値を入力してください。");
+        return false;
+      }
+      if(window.confirm('更新しますがよろしいですか？')){
+        return true;
+      }else{
+        return false;
+      }
+    }
+  </script>
+<% end %>
