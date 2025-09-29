@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2022_12_09_040405) do
+ActiveRecord::Schema[8.0].define(version: 2025_09_28_000002) do
   create_table "infomations", charset: "utf8mb4", collation: "utf8mb4_general_ci", force: :cascade do |t|
     t.date "info_date"
     t.text "info_message"
@@ -80,6 +80,22 @@ ActiveRecord::Schema[8.0].define(version: 2022_12_09_040405) do
     t.string "description"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+  end
+
+  create_table "m_custom_rundates", charset: "utf8mb4", collation: "utf8mb4_general_ci", force: :cascade do |t|
+    t.bigint "m_custom_id", null: false
+    t.integer "run_week", default: 0, null: false
+    t.integer "run_yobi", null: false
+    t.integer "item_kbn", null: false
+    t.integer "unit_kbn"
+    t.string "itaku_code"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["item_kbn"], name: "index_m_custom_rundates_on_item_kbn"
+    t.index ["m_custom_id", "run_week", "run_yobi", "item_kbn"], name: "idx_custom_rundates_on_mcustom_and_week_yobi_item", unique: true
+    t.index ["m_custom_id"], name: "index_m_custom_rundates_on_m_custom_id"
+    t.index ["run_week"], name: "index_m_custom_rundates_on_run_week"
+    t.index ["run_yobi"], name: "index_m_custom_rundates_on_run_yobi"
   end
 
   create_table "m_customs", charset: "utf8mb4", collation: "utf8mb4_general_ci", force: :cascade do |t|
@@ -160,6 +176,22 @@ ActiveRecord::Schema[8.0].define(version: 2022_12_09_040405) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.index ["route_code"], name: "idx_m_route_areas_route_code"
+  end
+
+  create_table "m_route_point_rundates", charset: "utf8mb4", collation: "utf8mb4_general_ci", force: :cascade do |t|
+    t.bigint "m_route_point_id", null: false
+    t.integer "run_week", default: 0, null: false
+    t.integer "run_yobi", null: false
+    t.integer "item_kbn", null: false
+    t.integer "unit_kbn"
+    t.string "itaku_code"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["item_kbn"], name: "index_m_route_point_rundates_on_item_kbn"
+    t.index ["m_route_point_id", "run_week", "run_yobi", "item_kbn"], name: "idx_point_rundates_on_point_week_yobi_item", unique: true
+    t.index ["m_route_point_id"], name: "index_m_route_point_rundates_on_m_route_point_id"
+    t.index ["run_week"], name: "index_m_route_point_rundates_on_run_week"
+    t.index ["run_yobi"], name: "index_m_route_point_rundates_on_run_yobi"
   end
 
   create_table "m_route_points", charset: "utf8mb4", collation: "utf8mb4_general_ci", force: :cascade do |t|
@@ -464,4 +496,7 @@ ActiveRecord::Schema[8.0].define(version: 2022_12_09_040405) do
     t.index ["reset_password_token"], name: "index_users_on_reset_password_token", unique: true
     t.index ["user_id"], name: "index_users_on_user_id", unique: true
   end
+
+  add_foreign_key "m_custom_rundates", "m_customs"
+  add_foreign_key "m_route_point_rundates", "m_route_points"
 end

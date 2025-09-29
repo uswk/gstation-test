@@ -5,6 +5,8 @@ class MCustomsController < ApplicationController
   before_action :set_zenrin_map_key
   before_action :set_hold_params, only: [:show, :edit, :new, :create, :update]
   before_action :set_search_params, only: [:index, :create, :update, :destroy]
+  before_action :set_m_custom, only: %i[show edit update destroy]
+  before_action :load_combo_options, only: %i[new edit create update]
 
   # GET /m_customs
   # GET /m_customs.json
@@ -155,6 +157,8 @@ class MCustomsController < ApplicationController
   # GET /m_customs/new
   def new
     @m_custom = MCustom.new
+    @m_custom.m_custom_rundates.build           # ← 追加: ネスト1行だけ初期表示
+    load_combo_options                          # ← 追加: セレクト用データ
 
     respond_to do |format|
       format.html # new.html.erb
@@ -354,5 +358,18 @@ class MCustomsController < ApplicationController
     def m_customs_params
       params.require(:m_custom).permit!
       #params.expect(m_custom: [....])
+    end
+
+    # ▼ 追加: セレクト用オプションを m_combos からロード
+    def load_combo_options
+      @week_opts = MCombo.weeks.map { |c| [c.label, c.class_code] }
+      @yobi_opts = MCombo.yobis.map { |c| [c.label, c.class_code] }
+      @item_opts = MCombo.items.map { |c| [c.label, c.class_code] }
+      @unit_opts = MCombo.units.map { |c| [c.label, c.class_code] }
+    end
+
+    # ▼ 追加: フォームで最低1行は表示
+    def build_minimum_rundate_rows
+      @m_custom.m_custom_rundates.build if @m_custom.m_custom_rundates.empty?
     end
 end
